@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
+	"strconv"
 )
 
 var (
@@ -34,6 +35,30 @@ func Init() {
 	//	}
 	//}()
 
+	variable := os.Getenv("MIGRATIONS")
+	migrations, err := strconv.ParseBool(variable)
+	if err != nil {
+		log.Fatalf("Error converting environment variable to boolean: %v\n", err)
+	}
+
+	if migrations {
+		makeMigrations()
+	}
+
 	fmt.Println("Connected to MongoDB!")
+
+}
+
+func makeMigrations() {
+	// List of collection names to create
+	collections := []string{"users", "mangas", "bookmarks"}
+	// Create each collection
+	for _, collectionName := range collections {
+		err = DB.CreateCollection(context.TODO(), collectionName)
+		if err != nil {
+			log.Fatalf("Error creating collection '%s': %v\n", collectionName, err)
+		}
+		fmt.Printf("Collection '%s' created successfully\n", collectionName)
+	}
 
 }

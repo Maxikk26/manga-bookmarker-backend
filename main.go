@@ -32,10 +32,12 @@ func main() {
 	{
 		v1 := api.Party("/v1")
 		{
+			v1.Post("/login", controllers.LoginController)
 			//API
 			user := v1.Party("/users")
 			{
 				user.Get("", controllers.GetUsersHandler)
+				user.Post("/", controllers.CreateUserHandler)
 			}
 			bookmark := v1.Party("/bookmarks")
 			{

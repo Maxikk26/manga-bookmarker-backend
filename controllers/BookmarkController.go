@@ -29,7 +29,7 @@ func CreateBookmarkHandler(ctx iris.Context) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	//Call Crawler service as a goroutine
-	go services.CrawlerService(request.Url, &wg)
+	go services.ScrapperService(request.Url, &wg)
 	wg.Wait()
 	response.Ok = true
 	ctx.StatusCode(iris.StatusOK)

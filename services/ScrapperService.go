@@ -29,7 +29,7 @@ func obtainDomainGlob(urlStr string) (string, error) {
 	return modifiedDNS, nil
 }
 
-func CrawlerService(url string, wg *sync.WaitGroup) {
+func ScrapperService(url string, wg *sync.WaitGroup) {
 	start := time.Now()
 
 	c := colly.NewCollector(
