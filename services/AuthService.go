@@ -103,3 +103,29 @@ func CreateUser(user dtos.UserCreate) (err error) {
 	}
 	return nil
 }
+
+func GetUserIdFromClaims(tokenString string) (userId string, err error) {
+	// Secret key used for signing the JWT (replace with your actual key)
+	secretKey := []byte("my_secret_key")
+
+	// Parse the JWT token
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		// Make sure that the token method conforms to "SigningMethodHMAC"
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return secretKey, nil
+	})
+
+	if err != nil {
+		fmt.Println("Error parsing token: ", err)
+		return "", err
+	}
+
+	// Validate the token and extract claims
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims.UserId, nil
+	} else {
+		return "", err
+	}
+}
