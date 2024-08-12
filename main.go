@@ -6,6 +6,7 @@ import (
 	"log"
 	"manga-bookmarker-backend/controllers"
 	"manga-bookmarker-backend/repository"
+	"os"
 	"time"
 )
 
@@ -45,6 +46,7 @@ func main() {
 			}
 		}
 	}
-	app.Listen(":8080")
+	host := ":" + os.Getenv("PORT")
+	app.Listen(host)
 
 }
