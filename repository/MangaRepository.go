@@ -12,13 +12,14 @@ func CreateManga(data models.Manga) (id interface{}, err error) {
 	// Insert the new user into the collection
 	res, err := DB.Collection("mangas").InsertOne(context.TODO(), data)
 	if err != nil {
+
 		return nil, err
 	}
 	return res.InsertedID, nil
 }
 
 func FindMangaByAny(key, value string) (manga models.Manga, errorType int, err error) {
-	err = DB.Collection("users").FindOne(context.TODO(), bson.M{key: value}).Decode(&manga)
+	err = DB.Collection("mangas").FindOne(context.TODO(), bson.M{key: value}).Decode(&manga)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return manga, constants.NoDocumentFound, nil

@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"manga-bookmarker-backend/constants"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/repository"
@@ -35,43 +36,44 @@ func CreateBookmark(data dtos.CreateBookmark) error {
 		return errors.New("No se encontró el manga especificado")
 	}
 
-	fmt.Println("manga", manga)
+	if errorType == constants.NoDocumentFound {
+		//TODO scrap manga info to poblate manga struct
+		//Channel to push the result of the scrapper to a struct so we can do nexts steps after we have the data
+		ch := make(chan dtos.MangaScrapperData)
 
-	if errorType != constants.NoDocumentFound {
-		fmt.Println("Error type NoDocumentFound after checking for err variable:", err.Error())
-		return errors.New("Ocurrio un error buscando el manga")
+		//Call scraooer service as a goroutine
+		go ScrapperService(data.Url, ch)
+
+		mangaData := <-ch
+
+		// Use dto-mapper to map the data to the struct
+		err = mapper.Map(&manga, &mangaData)
+		if err != nil {
+			fmt.Println("Error mapping data:", err)
+			return err
+		}
+
+		//Set de manga identifier
+		manga.Identifier = mangaIdentifier
+
+		//Create manga
+		id, err := repository.CreateManga(manga)
+		if err != nil {
+			fmt.Println("Error creating manga: ", err.Error())
+			return errors.New("Ocurrio un error creando el manga")
+		}
+
+		//parse id with type interface{} to primitive.ObjectID
+		objectID, ok := id.(primitive.ObjectID)
+		if !ok {
+			fmt.Println("id is not of type primitive.ObjectID")
+			return errors.New("Ocurrio un error creando el manga")
+		}
+
+		manga.Id = objectID
 	}
 
-	//TODO scrap manga info to poblate manga struct
-	//Channel to push the result of the scrapper to a struct so we can do nexts steps after we have the data
-	ch := make(chan dtos.MangaScrapperData)
-
-	//Call scraooer service as a goroutine
-	go ScrapperService(data.Url, ch)
-
-	mangaData := <-ch
-
-	// Use dto-mapper to map the data to the struct
-	err = mapper.Map(&manga, &mangaData)
-	if err != nil {
-		fmt.Println("Error mapping data:", err)
-		return err
-	}
-
-	//Set de manga identifier
-	manga.Identifier = mangaIdentifier
-
-	fmt.Println(fmt.Sprintf("%+v", manga))
-
-	id, err := repository.CreateManga(manga)
-	if err != nil {
-		fmt.Println("Error creating manga: ", err.Error())
-		return errors.New("Ocurrio un error creando el manga")
-	}
-
-	fmt.Println(id)
-
-	//TODO check if the bookmark for that manga does not exists
+	//TODO check if the bookmark for the manga on current user does not exists
 
 	//TODO create the bookmark
 
