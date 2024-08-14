@@ -6,7 +6,7 @@ import (
 )
 
 type Manga struct {
-	Id            primitive.ObjectID `bson:"_id"`
+	Id            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Identifier    string             `bson:"identifier"`
 	Name          string             `bson:"name"`
 	Cover         string             `bson:"cover"`
