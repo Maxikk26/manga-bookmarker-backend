@@ -30,6 +30,7 @@ func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 		mangaIdentifier = mangaIdentifier[:slashIdx] // Exclude the part after "/"
 	}
 
+	//manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
 	manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
 	if err != nil {
 		fmt.Println("Error obtaining manga:", err.Error())
@@ -45,12 +46,18 @@ func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 
 		mangaData := <-ch
 
+		fmt.Println("mangaData:", mangaData)
+
+		//TODO fix the problems with conversion of primitive.DateTime and time.Time, its putting wrong hours
+
 		// Use dto-mapper to map the data to the struct
 		err = utils.Mapper.Map(&manga, &mangaData)
 		if err != nil {
 			fmt.Println("Error mapping data:", err)
 			return bookmarkId, err
 		}
+
+		fmt.Println("manga", manga)
 
 		//Set de manga identifier
 		manga.Identifier = mangaIdentifier

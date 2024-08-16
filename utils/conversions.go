@@ -13,6 +13,7 @@ var Mapper dto.Mapper
 func AddConvertionFunctions() {
 	Mapper.AddConvFunc(objectIDToString)
 	Mapper.AddConvFunc(primitiveDateTimeToTime)
+	Mapper.AddConvFunc(timeToPrimitiveDateTime)
 }
 
 func objectIDToString(input primitive.ObjectID) string {
@@ -21,6 +22,10 @@ func objectIDToString(input primitive.ObjectID) string {
 
 func primitiveDateTimeToTime(input primitive.DateTime) time.Time {
 	return input.Time()
+}
+
+func timeToPrimitiveDateTime(input time.Time) primitive.DateTime {
+	return primitive.NewDateTimeFromTime(input)
 }
 
 func StructToMap(obj interface{}) map[string]interface{} {
