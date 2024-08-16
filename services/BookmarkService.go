@@ -29,8 +29,6 @@ func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 		mangaIdentifier = mangaIdentifier[:slashIdx] // Exclude the part after "/"
 	}
 
-	fmt.Println("mangaIdentifier", mangaIdentifier)
-
 	manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
 	if err != nil {
 		fmt.Println("Error obtaining manga:", err.Error())
@@ -91,7 +89,6 @@ func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 	}
 
 	if code == constants.NoDocumentFound {
-		fmt.Println(fmt.Sprintf("%+v", bookmark))
 		bookmark.UserId = userID
 		bookmark.MangaId = manga.Id
 		bookmark.Chapter = data.Chapter
@@ -103,15 +100,13 @@ func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 			return bookmarkId, errors.New("Ocurrio un error creando el marcador")
 		}
 
-		fmt.Println("id", id)
-
-		//TODO Fix conversion of the id that the create returns
-		idString, ok := id.(string)
+		objectID, ok := id.(primitive.ObjectID)
 		if !ok {
-			fmt.Println("The interface does not contain a string")
+			fmt.Println("Error parsing to the id of bookmark to ObjectID")
+			return bookmarkId, errors.New("Ocurrio un error enviando la respuesta")
 		}
 
-		return idString, nil
+		return objectID.Hex(), nil
 
 	} else {
 		return bookmarkId, errors.New("El marcador ya existe")
