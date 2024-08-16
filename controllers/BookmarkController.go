@@ -62,7 +62,8 @@ func CreateBookmarkHandler(ctx iris.Context) {
 
 	request.UserId = userId
 
-	if err = services.CreateBookmark(request); err != nil {
+	id, err := services.CreateBookmark(request)
+	if err != nil {
 		fmt.Println("Error while creating bookmark: ", err)
 		response.Ok = false
 		response.Msg = err.Error()
@@ -70,7 +71,12 @@ func CreateBookmarkHandler(ctx iris.Context) {
 		return
 	}
 
+	result := map[string]interface{}{
+		"bookmarkId": id,
+	}
+
 	response.Ok = true
+	response.Result = result
 	ctx.JSON(response)
 	return
 }

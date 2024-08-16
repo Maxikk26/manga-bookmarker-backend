@@ -8,16 +8,17 @@ import (
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/repository"
 	"strings"
+	"time"
 )
 
-func CreateBookmark(data dtos.CreateBookmark) error {
+func CreateBookmark(data dtos.CreateBookmark) (bookmarkId string, err error) {
 
 	// Find the index of "manga-"
 	prefix := "manga-"
 	idx := strings.Index(data.Url, prefix)
 	if idx == -1 {
 		fmt.Println("Prefix not found: ", data.Url)
-		return errors.New("No se encontro el prefijo de manganato en la url")
+		return bookmarkId, errors.New("No se encontro el prefijo de manganato en la url")
 	}
 
 	// Extract the substring after "manga-"
@@ -33,12 +34,11 @@ func CreateBookmark(data dtos.CreateBookmark) error {
 	manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
 	if err != nil {
 		fmt.Println("Error obtaining manga:", err.Error())
-		return errors.New("No se encontró el manga especificado")
+		return bookmarkId, errors.New("No se encontró el manga especificado")
 	}
 
 	if errorType == constants.NoDocumentFound {
-		//TODO scrap manga info to poblate manga struct
-		//Channel to push the result of the scrapper to a struct so we can do nexts steps after we have the data
+		//Channel to push the result of the scrapper to a struct, so we can do next steps after we have the data
 		ch := make(chan dtos.MangaScrapperData)
 
 		//Call scraooer service as a goroutine
@@ -50,7 +50,7 @@ func CreateBookmark(data dtos.CreateBookmark) error {
 		err = mapper.Map(&manga, &mangaData)
 		if err != nil {
 			fmt.Println("Error mapping data:", err)
-			return err
+			return bookmarkId, err
 		}
 
 		//Set de manga identifier
@@ -60,22 +60,60 @@ func CreateBookmark(data dtos.CreateBookmark) error {
 		id, err := repository.CreateManga(manga)
 		if err != nil {
 			fmt.Println("Error creating manga: ", err.Error())
-			return errors.New("Ocurrio un error creando el manga")
+			return bookmarkId, errors.New("Ocurrio un error creando el manga")
 		}
 
 		//parse id with type interface{} to primitive.ObjectID
 		objectID, ok := id.(primitive.ObjectID)
 		if !ok {
 			fmt.Println("id is not of type primitive.ObjectID")
-			return errors.New("Ocurrio un error creando el manga")
+			return bookmarkId, errors.New("Ocurrio un error creando el manga")
 		}
 
 		manga.Id = objectID
 	}
 
-	//TODO check if the bookmark for the manga on current user does not exists
+	userID, err := primitive.ObjectIDFromHex(data.UserId)
+	if err != nil {
+		fmt.Println("Invalid ObjectID string:", err)
+		return bookmarkId, errors.New("Error Interno")
+	}
 
-	//TODO create the bookmark
+	conditions := map[string]interface{}{
+		"manga_id": manga.Id,
+		"user_id":  userID,
+	}
 
-	return nil
+	bookmark, code, err := repository.FindBookmark(conditions)
+	if err != nil {
+		fmt.Println("Error obtaining bookmark:", err.Error())
+		return bookmarkId, errors.New("Ocurrio un error obteniendo el marcador")
+	}
+
+	if code == constants.NoDocumentFound {
+		fmt.Println(fmt.Sprintf("%+v", bookmark))
+		bookmark.UserId = userID
+		bookmark.MangaId = manga.Id
+		bookmark.Chapter = data.Chapter
+		bookmark.LastRead = primitive.NewDateTimeFromTime(time.Now())
+
+		id, err := repository.CreateBookmark(bookmark)
+		if err != nil {
+			fmt.Println("Error creating bookmark:", err.Error())
+			return bookmarkId, errors.New("Ocurrio un error creando el marcador")
+		}
+
+		fmt.Println("id", id)
+
+		//TODO Fix conversion of the id that the create returns
+		idString, ok := id.(string)
+		if !ok {
+			fmt.Println("The interface does not contain a string")
+		}
+
+		return idString, nil
+
+	} else {
+		return bookmarkId, errors.New("El marcador ya existe")
+	}
 }

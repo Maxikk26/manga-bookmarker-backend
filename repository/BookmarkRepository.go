@@ -8,8 +8,10 @@ import (
 	"manga-bookmarker-backend/models"
 )
 
-func FindBookmarkByAny(key, value string) (bookmark models.Bookmark, errorType int, err error) {
-	err = DB.Collection("bookmarks").FindOne(context.TODO(), bson.M{key: value}).Decode(&bookmark)
+func FindBookmark(conditions map[string]interface{}) (bookmark models.Bookmark, errorType int, err error) {
+	filter := bson.M(conditions)
+
+	err = DB.Collection("bookmarks").FindOne(context.TODO(), filter).Decode(&bookmark)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return bookmark, constants.NoDocumentFound, nil
@@ -18,4 +20,14 @@ func FindBookmarkByAny(key, value string) (bookmark models.Bookmark, errorType i
 		}
 	}
 	return bookmark, constants.NoError, nil
+}
+
+func CreateBookmark(bookmark models.Bookmark) (interface{}, error) {
+	// Insert the new user into the collection
+	res, err := DB.Collection("bookmarks").InsertOne(context.TODO(), bookmark)
+	if err != nil {
+
+		return nil, err
+	}
+	return res.InsertedID, nil
 }
