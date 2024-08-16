@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"manga-bookmarker-backend/constants"
 	"manga-bookmarker-backend/models"
 )
 
@@ -40,4 +41,18 @@ func FindUserByAny(key, value string) (user models.User, err error) {
 		}
 	}
 	return user, nil
+}
+
+func FindUser(conditions map[string]interface{}) (user models.User, errorType int, err error) {
+	filter := bson.M(conditions)
+
+	err = DB.Collection("bookmarks").FindOne(context.TODO(), filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return user, constants.NoDocumentFound, nil
+		} else {
+			return user, constants.Other, err
+		}
+	}
+	return user, constants.NoError, nil
 }

@@ -4,8 +4,9 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Bookmark struct {
 	Id       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	MangaId  primitive.ObjectID `bson:"manga_id"`
-	UserId   primitive.ObjectID `bson:"user_id"`
+	MangaId  primitive.ObjectID `bson:"mangaId"`
+	UserId   primitive.ObjectID `bson:"userId"`
 	Chapter  string             `bson:"chapter"`
-	LastRead primitive.DateTime `bson:"last_read"`
+	LastRead primitive.DateTime `bson:"lastRead"`
+	Status   int                `bson:"status"`
 }

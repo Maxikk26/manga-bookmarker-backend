@@ -6,6 +6,7 @@ import (
 	"log"
 	"manga-bookmarker-backend/controllers"
 	"manga-bookmarker-backend/repository"
+	"manga-bookmarker-backend/utils"
 	"os"
 	"time"
 )
@@ -27,6 +28,9 @@ func main() {
 	//Set timezone
 	time.Local, _ = time.LoadLocation("America/Caracas")
 
+	//Add convertion functions to mapper
+	utils.AddConvertionFunctions()
+
 	//Start iris server
 	app := iris.New()
 	api := app.Party("/api")
@@ -43,6 +47,9 @@ func main() {
 			bookmark := v1.Party("/bookmarks")
 			{
 				bookmark.Post("", controllers.CreateBookmarkHandler)
+				bookmark.Get("/{id}", controllers.GetBookmarkHandler)
+				bookmark.Get("", controllers.GetBookmarksHandler)
+				bookmark.Patch("/{id}", controllers.UpdateBookmarkHandler)
 			}
 		}
 	}

@@ -2,7 +2,6 @@ package models
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 type Manga struct {
@@ -11,5 +10,5 @@ type Manga struct {
 	Name          string             `bson:"name"`
 	Cover         string             `bson:"cover"`
 	TotalChapters string             `bson:"totalChapters"`
-	LastUpdate    time.Time          `bson:"lastUpdate"`
+	LastUpdate    primitive.DateTime `bson:"lastUpdate"`
 }

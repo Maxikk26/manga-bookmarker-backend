@@ -2,17 +2,15 @@ package services
 
 import (
 	"fmt"
-	"github.com/dranikpg/dto-mapper"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
 	"manga-bookmarker-backend/repository"
+	"manga-bookmarker-backend/utils"
 	"time"
 )
-
-var mapper dto.Mapper
 
 type Claims struct {
 	UserId string `json:"userId"`
@@ -89,7 +87,7 @@ func CreateUser(user dtos.UserCreate) (err error) {
 	//TODO parse to DB Model
 	var userModel models.User
 	// Use dto-mapper to map the data to the struct
-	err = mapper.Map(&userModel, &user)
+	err = utils.Mapper.Map(&userModel, &user)
 	if err != nil {
 		fmt.Println("Error mapping data:", err)
 		return err
