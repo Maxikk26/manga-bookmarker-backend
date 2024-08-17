@@ -51,6 +51,10 @@ func main() {
 				bookmark.Get("", controllers.GetBookmarksHandler)
 				bookmark.Patch("/{id}", controllers.UpdateBookmarkHandler)
 			}
+			manga := v1.Party("/mangas")
+			{
+				manga.Get("", controllers.GetMangasHandler)
+			}
 		}
 	}
 	host := ":" + os.Getenv("PORT")
