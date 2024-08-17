@@ -9,6 +9,8 @@ import (
 	"manga-bookmarker-backend/models"
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/utils"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -132,7 +134,72 @@ func BookmarkDetails(bookmarkId string) (dtos.Bookmark, error) {
 		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
 	}
 
+	bookmark.KeepReading = false
+
+	conditions = map[string]interface{}{
+		"_id": bookmarkModel.MangaId,
+	}
+
+	//Retreive the manga to check if there are new chapters to read
+	mangaModel, code, err := repository.FindManga(conditions)
+	if err != nil {
+		fmt.Println("Error obtaining manga:", err)
+		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
+	}
+
+	// Handle case where the bookmark was not found
+	if code == constants.NoDocumentFound {
+		return dtos.Bookmark{}, errors.New("El manga no existe")
+	}
+
+	if bookmarkModel.Status == constants.Reading {
+		keepReading, err := compareNumbersInStrings(bookmarkModel.Chapter, mangaModel.TotalChapters)
+		if err != nil {
+			fmt.Println("Error converting and comparing manga and bookmark chapters:", err)
+			fmt.Println("bookmark chapter:", bookmarkModel.Chapter)
+			fmt.Println("manga chapter:", mangaModel.TotalChapters)
+			return dtos.Bookmark{}, errors.New("Error interno")
+		}
+
+		bookmark.KeepReading = keepReading
+	}
+
 	return bookmark, nil
+}
+
+// extractNumber extracts the first floating-point number from a string
+func extractNumber(s string) (float64, error) {
+	// Regular expression to match numbers, including decimals
+	re := regexp.MustCompile(`-?\d+(\.\d+)?`)
+	match := re.FindString(s)
+	if match == "" {
+		return 0, fmt.Errorf("no number found in string")
+	}
+
+	// Convert the matched string to a float
+	number, err := strconv.ParseFloat(match, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return number, nil
+}
+
+// compareNumbersInStrings compares numbers in two strings
+func compareNumbersInStrings(str1, str2 string) (bool, error) {
+	// Extract numbers from both strings
+	num1, err := extractNumber(str1)
+	if err != nil {
+		return false, fmt.Errorf("error extracting number from first string: %v", err)
+	}
+
+	num2, err := extractNumber(str2)
+	if err != nil {
+		return false, fmt.Errorf("error extracting number from second string: %v", err)
+	}
+
+	// Compare the numbers
+	return num1 < num2, nil
 }
 
 func UserBookmarks(userId string) ([]dtos.Bookmark, error) {

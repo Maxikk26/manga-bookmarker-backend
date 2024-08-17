@@ -30,6 +30,20 @@ func FindMangaByAny(key, value string) (manga models.Manga, errorType int, err e
 	return manga, constants.NoError, nil
 }
 
+func FindManga(conditions map[string]interface{}) (manga models.Manga, errorType int, err error) {
+	filter := bson.M(conditions)
+
+	err = DB.Collection("mangas").FindOne(context.TODO(), filter).Decode(&manga)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return manga, constants.NoDocumentFound, nil
+		} else {
+			return manga, constants.Other, err
+		}
+	}
+	return manga, constants.NoError, nil
+}
+
 func FindMangasByAny(conditions map[string]interface{}) (mangas []models.Manga, code int, err error) {
 	filter := bson.M(conditions)
 

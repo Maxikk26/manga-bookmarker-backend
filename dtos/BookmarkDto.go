@@ -12,8 +12,9 @@ type CreateBookmark struct {
 }
 
 type Bookmark struct {
-	Id       string    `json:"id,omitempty"`
-	Chapter  string    `json:"chapter,omitempty"`
-	LastRead time.Time `json:"lastRead,omitempty"`
-	Status   int       `json:"status,omitempty"`
+	Id          string    `json:"id,omitempty"`
+	Chapter     string    `json:"chapter,omitempty"`
+	LastRead    time.Time `json:"lastRead,omitempty"`
+	KeepReading bool      `json:"keepReading"`
+	Status      int       `json:"status,omitempty"`
 }
