@@ -11,26 +11,9 @@ import (
 	"time"
 )
 
-func obtainDomainGlob(urlStr string) (string, error) {
-	// Parse the URL
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return "", err
-	}
+//Core services
 
-	// Extract the host from the URL
-	host := parsedURL.Hostname()
-
-	// Remove port if present
-	dns := strings.Split(host, ":")[0]
-
-	// Add '*' at the beginning and '/*' at the end
-	modifiedDNS := fmt.Sprintf("*%s/*", dns)
-
-	return modifiedDNS, nil
-}
-
-func ScrapperService(url string, ch chan<- dtos.MangaScrapperData) {
+func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 	start := time.Now()
 
 	var data dtos.MangaScrapperData
@@ -77,8 +60,6 @@ func ScrapperService(url string, ch chan<- dtos.MangaScrapperData) {
 			result := parts[1]
 			data.TotalChapters = result
 
-			//TODO obtain and transform the date of update [1 Day ago, X hour ago, (month day, year)]
-
 			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
 			if err != nil {
 				fmt.Println(err)
@@ -110,6 +91,94 @@ func ScrapperService(url string, ch chan<- dtos.MangaScrapperData) {
 	elapsed := time.Since(start) // Calculate the elapsed time
 	fmt.Printf("Execution time: %s\n", elapsed)
 	//fmt.Println(fmt.Sprintf("%+v", data))
+}
+
+func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
+	start := time.Now()
+
+	var data dtos.MangaScrapperData
+
+	c := colly.NewCollector(
+		colly.Async(true),              // Enable asynchronous requests
+		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
+		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
+	)
+
+	domainGlob, err := obtainDomainGlob(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Optimize network settings
+	err = c.Limit(&colly.LimitRule{
+		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
+		Parallelism: 10,              // Increase parallelism
+		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
+	})
+	if err != nil {
+		log.Fatal("limit error: ", err)
+		return
+	}
+
+	// Process only the first li element within ul.row-content-chapter
+	c.OnHTML("ul.row-content-chapter li:first-child", func(e *colly.HTMLElement) {
+		parts := strings.Fields(e.Text)
+		//fmt.Println("parts: ", parts)
+		if len(parts) > 1 {
+			result := parts[1]
+			data.TotalChapters = result
+
+			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
+			if err != nil {
+				fmt.Println(err)
+				data.LastUpdate = time.Now()
+			}
+
+			fmt.Println(parsedLastUpdate)
+			data.LastUpdate = parsedLastUpdate
+
+			//fmt.Println("result:", result)
+		} else {
+			fmt.Println("The input string does not contain enough parts.")
+		}
+	})
+
+	// Before making a request print "Visiting ..."
+	c.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL.String())
+	})
+
+	// Start scraping on url provided
+	c.Visit(url)
+
+	// Wait for all async tasks to complete
+	c.Wait()
+
+	ch <- data
+
+	elapsed := time.Since(start) // Calculate the elapsed time
+	fmt.Printf("Execution time: %s\n", elapsed)
+}
+
+//Helpers
+
+func obtainDomainGlob(urlStr string) (string, error) {
+	// Parse the URL
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract the host from the URL
+	host := parsedURL.Hostname()
+
+	// Remove port if present
+	dns := strings.Split(host, ":")[0]
+
+	// Add '*' at the beginning and '/*' at the end
+	modifiedDNS := fmt.Sprintf("*%s/*", dns)
+
+	return modifiedDNS, nil
 }
 
 // ParseRelativeTime parses relative time strings like "1 hour ago".

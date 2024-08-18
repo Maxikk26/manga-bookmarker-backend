@@ -119,6 +119,33 @@ func GetBookmarksHandler(ctx iris.Context) {
 	return
 }
 
+func CheckUpdatesHandler(ctx iris.Context) {
+	var response Response
+
+	bookmarkId := ctx.Params().Get("id")
+
+	if bookmarkId == "" {
+		response.Ok = false
+		response.Msg = "El parametro id está vacío"
+		ctx.JSON(response)
+		return
+	}
+
+	result, err := services.CheckForMangaUpdates(bookmarkId)
+	if err != nil {
+		fmt.Println("Error while checking for manga updates: ", err)
+		response.Ok = false
+		response.Msg = err.Error()
+		ctx.JSON(response)
+		return
+	}
+
+	response.Ok = true
+	response.Result = result
+	ctx.JSON(response)
+
+}
+
 func UpdateBookmarkHandler(ctx iris.Context) {
 	var response Response
 

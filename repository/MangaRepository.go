@@ -30,9 +30,7 @@ func FindMangaByAny(key, value string) (manga models.Manga, errorType int, err e
 	return manga, constants.NoError, nil
 }
 
-func FindManga(conditions map[string]interface{}) (manga models.Manga, errorType int, err error) {
-	filter := bson.M(conditions)
-
+func FindManga(filter bson.M) (manga models.Manga, errorType int, err error) {
 	err = DB.Collection("mangas").FindOne(context.TODO(), filter).Decode(&manga)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -42,33 +40,6 @@ func FindManga(conditions map[string]interface{}) (manga models.Manga, errorType
 		}
 	}
 	return manga, constants.NoError, nil
-}
-
-func FindMangasByAny(conditions map[string]interface{}) (mangas []models.Manga, code int, err error) {
-	filter := bson.M(conditions)
-
-	cursor, err := DB.Collection("mangas").Find(context.TODO(), filter)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, constants.NoDocumentFound, nil
-		}
-		return nil, constants.Other, err
-	}
-	defer cursor.Close(context.TODO())
-
-	for cursor.Next(context.TODO()) {
-		var manga models.Manga
-		if err := cursor.Decode(&manga); err != nil {
-			return nil, constants.Other, err
-		}
-		mangas = append(mangas, manga)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, constants.Other, err
-	}
-
-	return mangas, constants.NoError, nil
 }
 
 func AllMangas() (mangas []models.Manga, code int, err error) {
@@ -94,4 +65,18 @@ func AllMangas() (mangas []models.Manga, code int, err error) {
 	}
 
 	return mangas, constants.NoError, nil
+}
+
+func UpdateManga(filter bson.M, updates bson.D) (int, error) {
+	result, err := DB.Collection("mangas").UpdateOne(context.TODO(), filter, updates)
+	if err != nil {
+		return constants.Other, err
+	}
+
+	if result.MatchedCount == 0 {
+		return constants.NoDocumentFound, nil
+	}
+
+	return constants.NoError, nil
+
 }

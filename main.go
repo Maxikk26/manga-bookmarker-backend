@@ -49,6 +49,7 @@ func main() {
 				bookmark.Post("", controllers.CreateBookmarkHandler)
 				bookmark.Get("/{id}", controllers.GetBookmarkHandler)
 				bookmark.Get("", controllers.GetBookmarksHandler)
+				bookmark.Get("/{id}/manga", controllers.CheckUpdatesHandler)
 				bookmark.Patch("/{id}", controllers.UpdateBookmarkHandler)
 			}
 			manga := v1.Party("/mangas")

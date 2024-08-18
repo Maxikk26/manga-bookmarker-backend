@@ -6,10 +6,10 @@ import (
 )
 
 type MangaScrapperData struct {
-	Name          string    `json:"name"`
-	Cover         string    `json:"cover"`
-	TotalChapters string    `json:"totalChapters"`
-	LastUpdate    time.Time `json:"lastUpdate"`
+	Name          string    `json:"name" bson:"name,omitempty"`
+	Cover         string    `json:"cover" bson:"cover,omitempty"`
+	TotalChapters string    `json:"totalChapters" bson:"totalChapters,omitempty"`
+	LastUpdate    time.Time `json:"lastUpdate" bson:"lastUpdate,omitempty"`
 }
 
 type MangaInfo struct {

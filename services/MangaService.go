@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+//Core functions
+
 func AllMangas() (mangas []dtos.MangaInfo, err error) {
 
 	mangaModel, code, err := repository.AllMangas()
@@ -33,6 +35,8 @@ func AllMangas() (mangas []dtos.MangaInfo, err error) {
 	return mangas, nil
 }
 
+//Helpers
+
 // Helper function to find or scrape manga
 func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 	manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
@@ -42,7 +46,7 @@ func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 
 	if errorType == constants.NoDocumentFound {
 		ch := make(chan dtos.MangaScrapperData)
-		go ScrapperService(url, ch)
+		go MangaScrapping(url, ch)
 
 		mangaData := <-ch
 		err = utils.Mapper.Map(&manga, &mangaData)
