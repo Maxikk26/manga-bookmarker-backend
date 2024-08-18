@@ -17,6 +17,8 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+//Core services
+
 func Login(login dtos.Login) (tokenString string, err error) {
 	//TODO DTO struct validation
 
@@ -64,11 +66,6 @@ func GetAllUsers() (users []models.User, err error) {
 		return nil, err
 	}
 	return users, nil
-}
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
 }
 
 func CreateUser(user dtos.UserCreate) (err error) {
@@ -126,4 +123,10 @@ func GetUserIdFromClaims(tokenString string) (userId string, err error) {
 	} else {
 		return "", err
 	}
+}
+
+// Helpers
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
 }
