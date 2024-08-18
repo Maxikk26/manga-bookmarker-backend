@@ -21,9 +21,6 @@ type Claims struct {
 //Core services
 
 func Login(login dtos.Login) (tokenString string, err error) {
-	//TODO DTO struct validation
-
-	//TODO find user by username
 	filter := bson.M{"username": login.Username}
 	user, _, err := repository.FindUser(filter)
 	if err != nil {
@@ -31,7 +28,6 @@ func Login(login dtos.Login) (tokenString string, err error) {
 		return "", err
 	}
 
-	//TODO validate user with stored one
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
 	if err != nil {
 		fmt.Println("Error comparing password: ", err)
@@ -73,7 +69,6 @@ func GetAllUsers() (users []models.User, err error) {
 func CreateUser(user dtos.UserCreate) (err error) {
 	//TODO user, email and password validation
 
-	//TODO hash password
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
 		fmt.Println("Error hashing password:", err)
@@ -83,7 +78,6 @@ func CreateUser(user dtos.UserCreate) (err error) {
 
 	user.Password = hashedPassword
 
-	//TODO parse to DB Model
 	var userModel models.User
 	// Use dto-mapper to map the data to the struct
 	err = utils.Mapper.Map(&userModel, &user)

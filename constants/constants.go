@@ -6,6 +6,8 @@ const (
 	Other           = 0
 	NoDocumentFound = 1
 
+	//TODO endpoints que devuelva estatus de lectura
+
 	//Bookmark status
 	Reading        = 1
 	PlanningToRead = 2
