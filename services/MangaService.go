@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"manga-bookmarker-backend/constants"
 	"manga-bookmarker-backend/dtos"
@@ -39,7 +40,8 @@ func AllMangas() (mangas []dtos.MangaInfo, err error) {
 
 // Helper function to find or scrape manga
 func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
-	manga, errorType, err := repository.FindMangaByAny("identifier", mangaIdentifier)
+	filter := bson.M{"identifier": mangaIdentifier}
+	manga, errorType, err := repository.FindManga(filter)
 	if err != nil {
 		return models.Manga{}, err
 	}

@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"manga-bookmarker-backend/dtos"
@@ -23,7 +24,8 @@ func Login(login dtos.Login) (tokenString string, err error) {
 	//TODO DTO struct validation
 
 	//TODO find user by username
-	user, err := repository.FindUserByAny("username", login.Username)
+	filter := bson.M{"username": login.Username}
+	user, _, err := repository.FindUser(filter)
 	if err != nil {
 		fmt.Println("Error obtaining user: ", err.Error())
 		return "", err
