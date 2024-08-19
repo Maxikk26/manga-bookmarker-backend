@@ -3,8 +3,10 @@ package services
 import (
 	"fmt"
 	"github.com/gocolly/colly/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"manga-bookmarker-backend/dtos"
+	"manga-bookmarker-backend/models"
 	"net/url"
 	"strconv"
 	"strings"
@@ -158,6 +160,75 @@ func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	elapsed := time.Since(start) // Calculate the elapsed time
 	fmt.Printf("Execution time: %s\n", elapsed)
+}
+
+func AsyncUpdatesScrapping(url string, manga models.Manga) {
+	var data dtos.MangaScrapperData
+
+	c := colly.NewCollector(
+		colly.Async(true),              // Enable asynchronous requests
+		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
+		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
+	)
+
+	domainGlob, err := obtainDomainGlob(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Optimize network settings
+	err = c.Limit(&colly.LimitRule{
+		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
+		Parallelism: 10,              // Increase parallelism
+		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
+	})
+	if err != nil {
+		log.Fatal("limit error: ", err)
+		return
+	}
+
+	// Process only the first li element within ul.row-content-chapter
+	c.OnHTML("ul.row-content-chapter li:first-child", func(e *colly.HTMLElement) {
+		parts := strings.Fields(e.Text)
+		//fmt.Println("parts: ", parts)
+		if len(parts) > 1 {
+			result := parts[1]
+			data.TotalChapters = result
+
+			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
+			if err != nil {
+				fmt.Println(err)
+				data.LastUpdate = time.Now()
+			}
+
+			data.LastUpdate = parsedLastUpdate
+
+			if data.TotalChapters != manga.TotalChapters {
+				filter := bson.M{"_id": manga.Id}
+				err = UpdateManga(data, filter)
+				if err != nil {
+					fmt.Println("Error updating manga: ", err)
+				}
+			}
+
+			fmt.Println("end")
+
+		} else {
+			fmt.Println("The input string does not contain enough parts.")
+		}
+	})
+
+	// Before making a request print "Visiting ..."
+	c.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL.String())
+	})
+
+	// Start scraping on url provided
+	c.Visit(url)
+
+	// Wait for all async tasks to complete
+	c.Wait()
+
 }
 
 //Helpers

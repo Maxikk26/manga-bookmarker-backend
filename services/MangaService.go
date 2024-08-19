@@ -38,7 +38,37 @@ func AllMangas() (mangas []dtos.MangaInfo, err error) {
 
 //Helpers
 
-// Helper function to find or scrape manga
+// UpdateManga Helper to update a manga using the dto MangaScrapperData
+func UpdateManga(data dtos.MangaScrapperData, filter bson.M) (err error) {
+	var updateMangaValues models.Manga
+	err = utils.Mapper.Map(&updateMangaValues, &data)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	updateDoc, err := bson.Marshal(&data)
+	if err != nil {
+		fmt.Println("Error marshalling manga data:", err)
+	}
+
+	// Unmarshal the BSON into a bson.M map
+	var updateBson bson.M
+	err = bson.Unmarshal(updateDoc, &updateBson)
+	if err != nil {
+		fmt.Println("Error unmarshalling BSON:", err)
+	}
+
+	// Create the update document with $set
+	update := bson.D{{"$set", updateBson}}
+
+	_, err = repository.UpdateManga(filter, update)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return nil
+}
+
+// FindOrScrapeManga Helper function to find or scrape manga
 func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 	filter := bson.M{"identifier": mangaIdentifier}
 	manga, errorType, err := repository.FindManga(filter)
@@ -73,7 +103,7 @@ func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 	return manga, nil
 }
 
-// Helper function to extract manga identifier from URL
+// ExtractMangaIdentifier Helper function to extract manga identifier from URL
 func ExtractMangaIdentifier(url, prefix string) (string, error) {
 	idx := strings.Index(url, prefix)
 	if idx == -1 {
