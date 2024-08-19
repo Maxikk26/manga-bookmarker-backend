@@ -1,13 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/kataras/iris/v12"
+	"github.com/robfig/cron"
 	"log"
 	"manga-bookmarker-backend/controllers"
 	"manga-bookmarker-backend/repository"
+	"manga-bookmarker-backend/services"
 	"manga-bookmarker-backend/utils"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -18,15 +22,40 @@ func loadEnv() {
 	}
 }
 
+func loadScrapperCron() {
+	variable := os.Getenv("SCRAPPER_CRON")
+	scrapperFlag, err := strconv.ParseBool(variable)
+	if err != nil {
+		log.Fatalf("Error converting environment variable to boolean: %v\n", err)
+	}
+
+	if scrapperFlag {
+		c := cron.New()
+
+		err = c.AddFunc(os.Getenv("SCRAPPER_CRON_SCHEDULE"), services.ScrappingJob)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		c.Start()
+
+	}
+	return
+}
+
 func main() {
+	//Set timezone
+	time.Local, _ = time.LoadLocation("America/Caracas")
+
 	//Load .env
 	loadEnv()
 
 	//Connect to DB.
 	repository.Init()
 
-	//Set timezone
-	time.Local, _ = time.LoadLocation("America/Caracas")
+	//Set up scrapper cron
+	loadScrapperCron()
 
 	//Add convertion functions to mapper
 	utils.AddConvertionFunctions()
