@@ -8,6 +8,7 @@ import (
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,61 +21,51 @@ func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	var data dtos.MangaScrapperData
 
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
-
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
-		Parallelism: 10,              // Increase parallelism
-		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
+		ch <- data
 		return
 	}
 
 	// div element with class story-info-right to obtain manga title
 	c.OnHTML("div.story-info-right h1", func(e *colly.HTMLElement) {
 		data.Name = e.Text
-		//fmt.Println("title: ", e.Text)
 	})
 
 	// span element of div parent to obtain image src of manga
 	c.OnHTML("div.story-info-left span.info-image img", func(e *colly.HTMLElement) {
-		//fmt.Println("image url:", e.Attr("src"))
 		data.Cover = e.Attr("src")
 	})
 
 	// Process only the first li element within ul.row-content-chapter
 	c.OnHTML("ul.row-content-chapter li:first-child", func(e *colly.HTMLElement) {
-		parts := strings.Fields(e.Text)
-		//fmt.Println("parts: ", parts)
-		if len(parts) > 1 {
-			result := parts[1]
-			data.TotalChapters = result
+		// Extract the text from the a tag with class chapter-name
+		chapterName := strings.ToLower(e.ChildText("a.chapter-name"))
 
-			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
-			if err != nil {
-				fmt.Println(err)
-				data.LastUpdate = time.Now()
-			}
+		// Regular expression to match "chapter" followed by a number
+		re := regexp.MustCompile(`chapter\s+(\d+)`)
+		matches := re.FindStringSubmatch(chapterName)
 
-			fmt.Println(parsedLastUpdate)
-			data.LastUpdate = parsedLastUpdate
-
-			//fmt.Println("result:", result)
-		} else {
-			fmt.Println("The input string does not contain enough parts.")
+		data.TotalChapters = "0"
+		if len(matches) > 1 {
+			data.TotalChapters = matches[1]
 		}
+
+		// Extract the text from the span tag with class chapter-time
+		chapterTime := e.ChildText("span.chapter-time")
+
+		date, err := ExtractAndParseDateOrTime(chapterTime)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		data.LastUpdate = date
+
 	})
 
 	// Before making a request print "Visiting ..."
@@ -92,7 +83,6 @@ func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	elapsed := time.Since(start) // Calculate the elapsed time
 	fmt.Printf("Execution time: %s\n", elapsed)
-	//fmt.Println(fmt.Sprintf("%+v", data))
 }
 
 func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
@@ -100,49 +90,41 @@ func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	var data dtos.MangaScrapperData
 
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
-
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
-		Parallelism: 10,              // Increase parallelism
-		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
+		ch <- data
 		return
 	}
 
 	// Process only the first li element within ul.row-content-chapter
 	c.OnHTML("ul.row-content-chapter li:first-child", func(e *colly.HTMLElement) {
-		parts := strings.Fields(e.Text)
-		//fmt.Println("parts: ", parts)
-		if len(parts) > 1 {
-			result := parts[1]
-			data.TotalChapters = result
+		// Extract the text from the a tag with class chapter-name
+		chapterName := strings.ToLower(e.ChildText("a.chapter-name"))
 
-			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
-			if err != nil {
-				fmt.Println(err)
-				data.LastUpdate = time.Now()
-			}
+		// Regular expression to match "chapter" followed by a number
+		re := regexp.MustCompile(`chapter\s+(\d+)`)
+		matches := re.FindStringSubmatch(chapterName)
 
-			fmt.Println(parsedLastUpdate)
-			data.LastUpdate = parsedLastUpdate
-
-			//fmt.Println("result:", result)
-		} else {
-			fmt.Println("The input string does not contain enough parts.")
+		data.TotalChapters = "0"
+		if len(matches) > 1 {
+			data.TotalChapters = matches[1]
 		}
+
+		// Extract the text from the span tag with class chapter-time
+		chapterTime := e.ChildText("span.chapter-time")
+
+		date, err := ExtractAndParseDateOrTime(chapterTime)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		data.LastUpdate = date
+
 	})
 
 	// Before making a request print "Visiting ..."
@@ -163,59 +145,54 @@ func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 }
 
 func AsyncUpdatesScrapping(url string, manga models.Manga) {
+	start := time.Now()
 	var data dtos.MangaScrapperData
-
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
 
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
-		Parallelism: 10,              // Increase parallelism
-		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
 		return
 	}
 
 	// Process only the first li element within ul.row-content-chapter
 	c.OnHTML("ul.row-content-chapter li:first-child", func(e *colly.HTMLElement) {
-		parts := strings.Fields(e.Text)
-		//fmt.Println("parts: ", parts)
-		if len(parts) > 1 {
-			result := parts[1]
-			data.TotalChapters = result
+		// Extract the text from the a tag with class chapter-name
+		chapterName := strings.ToLower(e.ChildText("a.chapter-name"))
 
-			parsedLastUpdate, err := ExtractAndParseDateOrTime(parts)
-			if err != nil {
-				fmt.Println(err)
-				data.LastUpdate = time.Now()
-			}
+		// Regular expression to match "chapter" followed by a number
+		re := regexp.MustCompile(`chapter\s+(\d+)`)
+		matches := re.FindStringSubmatch(chapterName)
 
-			data.LastUpdate = parsedLastUpdate
-
-			if data.TotalChapters != manga.TotalChapters {
-				filter := bson.M{"_id": manga.Id}
-				err = UpdateManga(data, filter)
-				if err != nil {
-					fmt.Println("Error updating manga: ", err)
-				}
-			}
-
-			fmt.Println("end")
-
-		} else {
-			fmt.Println("The input string does not contain enough parts.")
+		data.TotalChapters = "0"
+		if len(matches) > 1 {
+			data.TotalChapters = matches[1]
 		}
+
+		// Extract the text from the span tag with class chapter-time
+		chapterTime := e.ChildText("span.chapter-time")
+
+		date, err := ExtractAndParseDateOrTime(chapterTime)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		data.LastUpdate = date
+
+		if data.TotalChapters != manga.TotalChapters {
+			filter := bson.M{"_id": manga.Id}
+			err = UpdateManga(data, filter)
+			if err != nil {
+				fmt.Println("Error updating manga: ", err)
+			}
+			fmt.Println("Updated manga: ", manga.Name)
+			elapsed := time.Since(start) // Calculate the elapsed time
+			fmt.Printf("Execution time: %s\n", elapsed)
+		}
+
 	})
 
 	// Before making a request print "Visiting ..."
@@ -252,65 +229,78 @@ func obtainDomainGlob(urlStr string) (string, error) {
 	return modifiedDNS, nil
 }
 
-// ParseRelativeTime parses relative time strings like "1 hour ago".
-func ParseRelativeTime(parts []string) (time.Time, error) {
-	now := time.Now()
-
-	if len(parts) < 2 {
+func ParseRelativeTime(input string) (time.Time, error) {
+	// Split the input string based on " ago"
+	parts := strings.Split(input, " ago")
+	if len(parts) != 2 {
 		return time.Time{}, fmt.Errorf("invalid relative time format")
 	}
 
-	quantity, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid quantity: %w", err)
+	// Split the remaining part based on space to get value and unit
+	timeParts := strings.Fields(parts[0])
+	if len(timeParts) != 2 {
+		return time.Time{}, fmt.Errorf("invalid relative time format")
 	}
 
-	unit := parts[1]
+	value, err := strconv.Atoi(timeParts[0])
+	if err != nil {
+		return time.Time{}, err
+	}
 
-	var duration time.Duration
+	unit := timeParts[1]
+	now := time.Now()
+
 	switch unit {
-	case "hour", "hours":
-		duration = time.Duration(quantity) * time.Hour
-	case "day", "days":
-		duration = time.Duration(quantity*24) * time.Hour
+	case "min":
+		return now.Add(-time.Minute * time.Duration(value)), nil
+	case "hour":
+		return now.Add(-time.Hour * time.Duration(value)), nil
+	case "day":
+		return now.Add(-24 * time.Hour * time.Duration(value)), nil
 	default:
-		return time.Time{}, fmt.Errorf("unsupported time unit: %s", unit)
+		return time.Time{}, fmt.Errorf("unknown time unit: %s", unit)
 	}
-
-	return now.Add(-duration), nil
 }
 
-// ParseDate parses a date string in the format "Aug 12, 24" or "Aug 12,24".
-func ParseDate(dateString string) (time.Time, error) {
-	parsedTime, err := time.Parse("Jan 2, 06", dateString)
+func ParseDate(input string) (time.Time, error) {
+	// Split based on ","
+	parts := strings.Split(input, ",")
+	if len(parts) != 2 {
+		return time.Time{}, fmt.Errorf("invalid date format")
+	}
+
+	monthDay := strings.TrimSpace(parts[0])
+	year := strings.TrimSpace(parts[1])
+
+	// Handle two-digit year
+	if len(year) == 2 {
+		currentYear := time.Now().Year()
+		twoDigitYear := currentYear % 100
+		if twoDigitYear > 50 {
+			year = fmt.Sprintf("19%s", year)
+		} else {
+			year = fmt.Sprintf("20%s", year)
+		}
+	}
+
+	dateString := fmt.Sprintf("%s, %s", monthDay, year)
+	layout := "Jan 02, 2006"
+	parsedDate, err := time.Parse(layout, dateString)
 	if err != nil {
-		// Try parsing without space after comma
-		parsedTime, err = time.Parse("Jan 2,06", dateString)
-		if err != nil {
-			return time.Time{}, fmt.Errorf("could not parse date: %w", err)
-		}
+		return time.Time{}, err
 	}
-	return parsedTime, nil
+	return parsedDate, nil
 }
 
-// ExtractAndParseDateOrTime extracts and parses the correct date or time from the array.
-func ExtractAndParseDateOrTime(arr []string) (time.Time, error) {
-	if len(arr) < 2 {
-		return time.Time{}, fmt.Errorf("array must have at least two elements")
+func ExtractAndParseDateOrTime(input string) (time.Time, error) {
+	// Check if the input contains "ago"
+	if strings.Contains(input, "ago") {
+		return ParseRelativeTime(input)
 	}
 
-	// Check if the last part is "ago", indicating a relative time
-	if arr[len(arr)-1] == "ago" {
-		return ParseRelativeTime(arr[len(arr)-3:])
-	}
-
-	// Handle date formats by checking the last parts
-	for i := len(arr) - 1; i >= 2; i-- {
-		if strings.Contains(arr[i], ",") {
-			// Construct the date string from the last three elements
-			dateString := fmt.Sprintf("%s %s", arr[i-1], arr[i])
-			return ParseDate(dateString)
-		}
+	// Check if the input contains a ","
+	if strings.Contains(input, ",") {
+		return ParseDate(input)
 	}
 
 	return time.Time{}, fmt.Errorf("could not identify date or relative time")

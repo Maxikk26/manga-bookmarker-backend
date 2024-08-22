@@ -126,6 +126,8 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 	// Define conditions for finding the user's bookmarks
 	filter := bson.M{"userId": objectID}
 
+	//TODO paginated search
+
 	// Retrieve the bookmarks from the repository
 	bookmarkModels, code, err := repository.FindBookmarks(filter)
 	if err != nil {
@@ -144,6 +146,8 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 		fmt.Println("Error mapping data:", err)
 		return nil, errors.New("Error interno")
 	}
+
+	//TODO validate keepReading flag
 
 	return bookmarks, nil
 }
