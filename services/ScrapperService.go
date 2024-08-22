@@ -21,25 +21,15 @@ func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	var data dtos.MangaScrapperData
 
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
-
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,             // Apply limit rule to the specific domain
-		Parallelism: 10,                     // Increase parallelism
-		RandomDelay: 500 * time.Millisecond, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
+		ch <- data
 		return
 	}
 
@@ -100,25 +90,15 @@ func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 
 	var data dtos.MangaScrapperData
 
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
-
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,             // Apply limit rule to the specific domain
-		Parallelism: 10,                     // Increase parallelism
-		RandomDelay: 500 * time.Millisecond, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
+		ch <- data
 		return
 	}
 
@@ -165,27 +145,17 @@ func SyncUpdatesScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 }
 
 func AsyncUpdatesScrapping(url string, manga models.Manga) {
+	start := time.Now()
 	var data dtos.MangaScrapperData
-
-	c := colly.NewCollector(
-		colly.Async(true),              // Enable asynchronous requests
-		colly.MaxDepth(1),              // Limit depth to 1 to avoid unnecessary recursion
-		colly.UserAgent("Mozilla/5.0"), // Set a common user agent
-	)
 
 	domainGlob, err := obtainDomainGlob(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Optimize network settings
-	err = c.Limit(&colly.LimitRule{
-		DomainGlob:  domainGlob,      // Apply limit rule to the specific domain
-		Parallelism: 10,              // Increase parallelism
-		RandomDelay: 1 * time.Second, // Add random delay to avoid being blocked
-	})
+	c, err := NewCollector(domainGlob)
 	if err != nil {
-		log.Fatal("limit error: ", err)
+		log.Println("Error getting Colly collector:", err)
 		return
 	}
 
@@ -218,6 +188,9 @@ func AsyncUpdatesScrapping(url string, manga models.Manga) {
 			if err != nil {
 				fmt.Println("Error updating manga: ", err)
 			}
+			fmt.Println("Updated manga: ", manga.Name)
+			elapsed := time.Since(start) // Calculate the elapsed time
+			fmt.Printf("Execution time: %s\n", elapsed)
 		}
 
 	})
