@@ -11,8 +11,6 @@ import (
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/utils"
 	"os"
-	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -110,14 +108,7 @@ func BookmarkDetails(bookmarkId string) (dtos.Bookmark, error) {
 	}
 
 	if bookmarkModel.Status == constants.Reading {
-		keepReading, err := compareNumbersInStrings(bookmarkModel.Chapter, mangaModel.TotalChapters)
-		if err != nil {
-			fmt.Println("Error converting and comparing manga and bookmark chapters:", err)
-			fmt.Println("bookmark chapter:", bookmarkModel.Chapter)
-			fmt.Println("manga chapter:", mangaModel.TotalChapters)
-			return dtos.Bookmark{}, errors.New("Error interno")
-		}
-
+		keepReading := bookmarkModel.Chapter < mangaModel.TotalChapters
 		bookmark.KeepReading = keepReading
 	}
 
@@ -133,7 +124,7 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 	}
 
 	// Define conditions for finding the user's bookmarks
-	filter := bson.M{"_id": objectID}
+	filter := bson.M{"userId": objectID}
 
 	// Retrieve the bookmarks from the repository
 	bookmarkModels, code, err := repository.FindBookmarks(filter)
@@ -231,7 +222,15 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 		return dtos.Bookmark{}, errors.New("Error interno")
 	}
 
-	//TODO obtain manga to put correct value of keepReading flag
+	//Set the flag for keepReading in case the user is behind in chapters
+	updatedBookmark.KeepReading = false
+	mangaId, _ := primitive.ObjectIDFromHex(updatedBookmark.MangaId)
+
+	filter = bson.M{"_id": mangaId}
+	mangaModel, code, err := repository.FindManga(filter)
+	if err == nil && code == constants.NoError {
+		updatedBookmark.KeepReading = updatedBookmark.Chapter < mangaModel.TotalChapters
+	}
 
 	return updatedBookmark, nil
 }
@@ -376,39 +375,4 @@ func createNewBookmark(data dtos.CreateBookmark, mangaID, userID primitive.Objec
 	}
 
 	return objectID.Hex(), nil
-}
-
-// Helper function to extractNumber extracts the first floating-point number from a string
-func extractNumber(s string) (float64, error) {
-	// Regular expression to match numbers, including decimals
-	re := regexp.MustCompile(`-?\d+(\.\d+)?`)
-	match := re.FindString(s)
-	if match == "" {
-		return 0, fmt.Errorf("no number found in string")
-	}
-
-	// Convert the matched string to a float
-	number, err := strconv.ParseFloat(match, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return number, nil
-}
-
-// Helper function to compareNumbersInStrings compares numbers in two strings
-func compareNumbersInStrings(str1, str2 string) (bool, error) {
-	// Extract numbers from both strings
-	num1, err := extractNumber(str1)
-	if err != nil {
-		return false, fmt.Errorf("error extracting number from first string: %v", err)
-	}
-
-	num2, err := extractNumber(str2)
-	if err != nil {
-		return false, fmt.Errorf("error extracting number from second string: %v", err)
-	}
-
-	// Compare the numbers
-	return num1 < num2, nil
 }
