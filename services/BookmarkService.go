@@ -204,6 +204,7 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 
 	// Create the update document with $set
 	update := bson.D{{"$set", updateBson}}
+	update = append(update, bson.E{Key: "updatedAt", Value: primitive.NewDateTimeFromTime(time.Now())})
 
 	// Update the bookmark in the repository
 	code, err = repository.UpdateBookmark(filter, update)
@@ -316,6 +317,7 @@ func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
 
 	// Create the update document with $set
 	update := bson.D{{"$set", updateBson}}
+	update = append(update, bson.E{Key: "updatedAt", Value: primitive.NewDateTimeFromTime(time.Now())})
 
 	code, err = repository.UpdateManga(filter, update)
 	if err != nil {
@@ -361,11 +363,12 @@ func findExistingBookmark(mangaID, userID primitive.ObjectID) (*models.Bookmark,
 func createNewBookmark(data dtos.CreateBookmark, mangaID, userID primitive.ObjectID) (string, error) {
 
 	bookmark := models.Bookmark{
-		UserId:   userID,
-		MangaId:  mangaID,
-		Chapter:  data.Chapter,
-		Status:   data.Status,
-		LastRead: primitive.NewDateTimeFromTime(time.Now()),
+		UserId:    userID,
+		MangaId:   mangaID,
+		Chapter:   data.Chapter,
+		Status:    data.Status,
+		LastRead:  primitive.NewDateTimeFromTime(time.Now()),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	id, err := repository.CreateBookmark(bookmark)

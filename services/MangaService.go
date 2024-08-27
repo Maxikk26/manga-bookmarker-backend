@@ -11,6 +11,7 @@ import (
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/utils"
 	"strings"
+	"time"
 )
 
 //Core functions
@@ -60,6 +61,7 @@ func UpdateManga(data dtos.MangaScrapperData, filter bson.M) (err error) {
 
 	// Create the update document with $set
 	update := bson.D{{"$set", updateBson}}
+	update = append(update, bson.E{Key: "updatedAt", Value: primitive.NewDateTimeFromTime(time.Now())})
 
 	_, err = repository.UpdateManga(filter, update)
 	if err != nil {
@@ -87,6 +89,7 @@ func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 		}
 
 		manga.Identifier = mangaIdentifier
+		manga.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 		id, err := repository.CreateManga(manga)
 		if err != nil {
 			return models.Manga{}, fmt.Errorf("Error creating manga: %v", err)
