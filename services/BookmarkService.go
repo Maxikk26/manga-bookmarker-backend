@@ -91,26 +91,7 @@ func BookmarkDetails(bookmarkId string) (dtos.Bookmark, error) {
 		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
 	}
 
-	bookmark.KeepReading = false
-
-	filter = bson.M{"_id": bookmarkModel.MangaId}
-
-	//Retreive the manga to check if there are new chapters to read
-	mangaModel, code, err := repository.FindManga(filter)
-	if err != nil {
-		fmt.Println("Error obtaining manga:", err)
-		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
-	}
-
-	// Handle case where the bookmark was not found
-	if code == constants.NoDocumentFound {
-		return dtos.Bookmark{}, errors.New("El manga no existe")
-	}
-
-	if bookmarkModel.Status == constants.Reading {
-		keepReading := bookmarkModel.Chapter < mangaModel.TotalChapters
-		bookmark.KeepReading = keepReading
-	}
+	bookmark.KeepReading = validateKeepReading(&bookmark)
 
 	return bookmark, nil
 }
@@ -147,7 +128,9 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 		return nil, errors.New("Error interno")
 	}
 
-	//TODO validate keepReading flag
+	for i := range bookmarks {
+		bookmarks[i].KeepReading = validateKeepReading(&bookmarks[i])
+	}
 
 	return bookmarks, nil
 }
@@ -382,4 +365,27 @@ func createNewBookmark(data dtos.CreateBookmark, mangaID, userID primitive.Objec
 	}
 
 	return objectID.Hex(), nil
+}
+
+// Helper function to validate the keepReading flag of a bookmark
+func validateKeepReading(bookmark *dtos.Bookmark) bool {
+	keepReading := false
+
+	mangaId, _ := primitive.ObjectIDFromHex(bookmark.MangaId)
+	filter := bson.M{"_id": mangaId}
+	//Retreive the manga to check if there are new chapters to read
+	mangaModel, code, err := repository.FindManga(filter)
+	if err != nil {
+		fmt.Println("Error obtaining manga:", err)
+		return false
+	}
+
+	if code == constants.NoDocumentFound {
+		fmt.Println("Manga does not exists", err)
+		return false
+	}
+
+	keepReading = bookmark.Chapter < mangaModel.TotalChapters
+
+	return keepReading
 }
