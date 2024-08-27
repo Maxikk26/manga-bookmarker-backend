@@ -13,4 +13,9 @@ const (
 	PlanningToRead = 2
 	OnHold         = 3
 	Dropped        = 4
+
+	//Manga status
+	Ongoing   = 0
+	Completed = 1
+	Hiatus    = 2
 )

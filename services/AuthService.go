@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"manga-bookmarker-backend/dtos"
@@ -88,6 +89,7 @@ func CreateUser(user dtos.UserCreate) (err error) {
 
 	userModel.Rol = "master"
 	userModel.Status = 1
+	userModel.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 	err = repository.CreateUser(userModel)
 	if err != nil {
 		return err

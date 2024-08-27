@@ -16,6 +16,9 @@ import (
 
 //Core services
 
+//TODO parametrizar los tags html
+//TODO parametrizar el codigo en funcion de la fuente
+
 func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 	start := time.Now()
 
