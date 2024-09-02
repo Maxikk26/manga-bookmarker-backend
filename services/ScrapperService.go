@@ -29,6 +29,10 @@ func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 		log.Fatal(err)
 	}
 
+	fmt.Println("domain glob:", domainGlob)
+
+	panic("")
+
 	c, err := NewCollector(domainGlob)
 	if err != nil {
 		log.Println("Error getting Colly collector:", err)

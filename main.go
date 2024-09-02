@@ -85,6 +85,10 @@ func main() {
 			{
 				manga.Get("", controllers.GetMangasHandler)
 			}
+			site := v1.Party("/sites")
+			{
+				site.Post("", controllers.CreateSiteConfigHandler)
+			}
 		}
 	}
 	host := ":" + os.Getenv("PORT")
