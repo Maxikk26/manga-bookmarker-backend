@@ -9,6 +9,7 @@ type CreateBookmark struct {
 	UserId  string `json:"userId,omitempty"`
 	Chapter string `json:"chapter,omitempty"`
 	Status  int    `json:"status,omitempty"`
+	SiteId  string `json:"siteId,omitempty"`
 }
 
 type BookmarkMangaUpdate struct {

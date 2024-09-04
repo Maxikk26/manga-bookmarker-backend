@@ -11,10 +11,45 @@ import (
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/utils"
 	"os"
+	"regexp"
 	"time"
 )
 
 //Core services
+
+func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
+	//TODO refactor to accept parameters from the configuration collection
+
+	//TODO Extract path from URL
+	path, err := extractPath(data.Url)
+	if err != nil {
+		fmt.Println("Error extracting path")
+		return "", err
+	}
+
+	//TODO obtain path from DB
+
+	filter := bson.M{"path": path}
+	pathModel, _, err := repository.FindPath(filter)
+	if err != nil {
+		fmt.Println("Error finding path")
+		return "", errors.New("Error buscando el path del manga")
+	}
+	//TODO obtain bookmark with pathId, if exists return error
+
+	filter = bson.M{"pathId": pathModel.Id}
+	existingBookmark, _, err := repository.FindBookmark(filter)
+	if err != nil {
+		fmt.Println("Error finding bookmark")
+		return "", errors.New("Error buscando el bookmark del manga")
+	}
+
+	if !primitive.ObjectID.IsZero(existingBookmark.Id) {
+		return "", errors.New("El bookmark ya existe")
+	}
+
+	return "", err
+}
 
 func CreateBookmark(data dtos.CreateBookmark) (string, error) {
 	const prefix = "manga-"
@@ -388,4 +423,15 @@ func validateKeepReading(bookmark *dtos.Bookmark) bool {
 	keepReading = bookmark.Chapter < mangaModel.TotalChapters
 
 	return keepReading
+}
+
+func extractPath(url string) (string, error) {
+	// Regular expression to match and capture everything after the top-level domain
+	re := regexp.MustCompile(`\.[a-z]{2,3}\/(.+)$`)
+	match := re.FindStringSubmatch(url)
+
+	if len(match) > 1 {
+		return "/" + match[1], nil
+	}
+	return "", fmt.Errorf("no match found")
 }
