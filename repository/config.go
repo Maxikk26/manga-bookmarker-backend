@@ -51,7 +51,7 @@ func Init() {
 
 func makeMigrations() {
 	// List of collection names to create
-	collections := []string{"users", "mangas", "bookmarks", "siteConfigs"}
+	collections := []string{"users", "mangas", "bookmarks", "siteConfigs", "paths"}
 	// Create each collection
 	for _, collectionName := range collections {
 		err = DB.CreateCollection(context.TODO(), collectionName)

@@ -9,3 +9,8 @@ type CreateSiteConfig struct {
 	UploadSelector  string `json:"uploadSelector"`
 	GenreSelector   string `json:"genreSelector,omitempty"`
 }
+
+type SiteConfig struct {
+	Id string `json:"id,omitempty"`
+	CreateSiteConfig
+}

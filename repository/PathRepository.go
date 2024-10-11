@@ -8,13 +8,13 @@ import (
 	"manga-bookmarker-backend/models"
 )
 
-func CreatePath(newSiteConfig models.SiteConfig) error {
+func CreatePath(newPath models.Path) (interface{}, error) {
 	// Insert the new user into the collection
-	_, err = DB.Collection("paths").InsertOne(context.TODO(), newSiteConfig)
+	res, err := DB.Collection("paths").InsertOne(context.TODO(), newPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return res.InsertedID, nil
 }
 
 func FindPath(filter bson.M) (path models.Path, errorType int, err error) {

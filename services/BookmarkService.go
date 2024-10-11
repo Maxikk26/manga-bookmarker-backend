@@ -17,40 +17,6 @@ import (
 
 //Core services
 
-func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
-	//TODO refactor to accept parameters from the configuration collection
-
-	//TODO Extract path from URL
-	path, err := extractPath(data.Url)
-	if err != nil {
-		fmt.Println("Error extracting path")
-		return "", err
-	}
-
-	//TODO obtain path from DB
-
-	filter := bson.M{"path": path}
-	pathModel, _, err := repository.FindPath(filter)
-	if err != nil {
-		fmt.Println("Error finding path")
-		return "", errors.New("Error buscando el path del manga")
-	}
-	//TODO obtain bookmark with pathId, if exists return error
-
-	filter = bson.M{"pathId": pathModel.Id}
-	existingBookmark, _, err := repository.FindBookmark(filter)
-	if err != nil {
-		fmt.Println("Error finding bookmark")
-		return "", errors.New("Error buscando el bookmark del manga")
-	}
-
-	if !primitive.ObjectID.IsZero(existingBookmark.Id) {
-		return "", errors.New("El bookmark ya existe")
-	}
-
-	return "", err
-}
-
 func CreateBookmark(data dtos.CreateBookmark) (string, error) {
 	const prefix = "manga-"
 
@@ -88,6 +54,90 @@ func CreateBookmark(data dtos.CreateBookmark) (string, error) {
 
 	// Create and return new bookmark
 	bookmarkId, err := createNewBookmark(data, manga.Id, userID)
+	if err != nil {
+		fmt.Println("Error creating bookmark:", err.Error())
+		return "", errors.New("Ocurrio un error creando el bookmark")
+	}
+
+	return bookmarkId, nil
+}
+
+func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
+	siteId, _ := primitive.ObjectIDFromHex(data.SiteId)
+	filter := bson.M{"_id": siteId}
+	siteModel, code, err := repository.FindSiteConfig(filter)
+	if err != nil || code == constants.NoDocumentFound {
+		return "", errors.New("No se encontro la configuracion del sitio")
+	}
+
+	filter = bson.M{"path": data.Path}
+	pathModel, code, err := repository.FindPath(filter)
+	if err != nil {
+		return "", errors.New("No se encontro la path")
+	}
+
+	if code == constants.NoDocumentFound {
+		//Scrap manga from the site with its configurations
+		ch := make(chan dtos.MangaScrapperData)
+		go MangaScrappingV2(data.Path, siteModel, ch)
+
+		mangaData := <-ch
+
+		//Create Manga
+		var manga models.Manga
+		err = utils.Mapper.Map(&manga, &mangaData)
+		if err != nil {
+			fmt.Println(err)
+			return "", errors.New("Error interno")
+		}
+
+		manga.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+		id, err := repository.CreateManga(manga)
+		if err != nil {
+			return "", errors.New("Error al crear el manga")
+		}
+
+		objectID, ok := id.(primitive.ObjectID)
+		if !ok {
+			return "", errors.New("Ocurrio un error creando el manga")
+		}
+
+		//Create Path for the manga
+		newPath := models.Path{
+			MangaId:       objectID,
+			SiteId:        siteId,
+			Path:          data.Path,
+			TotalChapters: mangaData.TotalChapters,
+			LastUpdate:    primitive.NewDateTimeFromTime(mangaData.LastUpdate),
+		}
+
+		id, err = repository.CreatePath(newPath)
+		if err != nil {
+			fmt.Println("Error creating path: ", err.Error())
+			return "", errors.New("Error al crear el path")
+		}
+		pathId, _ := id.(primitive.ObjectID)
+
+		pathModel = newPath
+		pathModel.Id = pathId
+	}
+
+	// Convert UserId to ObjectID
+	userID, _ := primitive.ObjectIDFromHex(data.UserId)
+
+	// Check if bookmark already exists
+	existingBookmark, err := findExistingBookmark(pathModel.Id, userID)
+	if err != nil {
+		fmt.Println("Error obtaining bookmark:", err.Error())
+		return "", err
+	}
+
+	if existingBookmark != nil {
+		return "", errors.New("El bookmark ya existe")
+	}
+
+	// Create and return new bookmark
+	bookmarkId, err := createNewBookmark(data, pathModel.Id, userID)
 	if err != nil {
 		fmt.Println("Error creating bookmark:", err.Error())
 		return "", errors.New("Ocurrio un error creando el bookmark")
@@ -247,13 +297,13 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 
 	//Set the flag for keepReading in case the user is behind in chapters
 	updatedBookmark.KeepReading = false
-	mangaId, _ := primitive.ObjectIDFromHex(updatedBookmark.MangaId)
+	/*mangaId, _ := primitive.ObjectIDFromHex(updatedBookmark.MangaId)
 
 	filter = bson.M{"_id": mangaId}
 	mangaModel, code, err := repository.FindManga(filter)
 	if err == nil && code == constants.NoError {
 		updatedBookmark.KeepReading = updatedBookmark.Chapter < mangaModel.TotalChapters
-	}
+	}*/
 
 	return updatedBookmark, nil
 }
@@ -378,11 +428,11 @@ func findExistingBookmark(mangaID, userID primitive.ObjectID) (*models.Bookmark,
 }
 
 // Helper function to create a new bookmark
-func createNewBookmark(data dtos.CreateBookmark, mangaID, userID primitive.ObjectID) (string, error) {
+func createNewBookmark(data dtos.CreateBookmark, pathId, userId primitive.ObjectID) (string, error) {
 
 	bookmark := models.Bookmark{
-		UserId:    userID,
-		MangaId:   mangaID,
+		UserId:    userId,
+		PathId:    pathId,
 		Chapter:   data.Chapter,
 		Status:    data.Status,
 		LastRead:  primitive.NewDateTimeFromTime(time.Now()),

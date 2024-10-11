@@ -6,6 +6,7 @@ import (
 
 type CreateBookmark struct {
 	Url     string `json:"url"`
+	Path    string `json:"path"`
 	UserId  string `json:"userId,omitempty"`
 	Chapter string `json:"chapter,omitempty"`
 	Status  int    `json:"status,omitempty"`
