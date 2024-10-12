@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"github.com/gocolly/colly/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
@@ -256,16 +255,20 @@ func AsyncUpdatesScrapping(url string, manga models.Manga) {
 		}
 		data.LastUpdate = date
 
-		if data.TotalChapters != manga.TotalChapters {
+		//TODO refactor
+
+		/*if data.TotalChapters != manga.TotalChapters {
 			filter := bson.M{"_id": manga.Id}
 			err = UpdateManga(data, filter)
 			if err != nil {
 				fmt.Println("Error updating manga: ", err)
 			}
 			fmt.Println("Updated manga: ", manga.Name)
-			elapsed := time.Since(start) // Calculate the elapsed time
-			fmt.Printf("Execution time: %s\n", elapsed)
-		}
+
+		}*/
+
+		elapsed := time.Since(start) // Calculate the elapsed time
+		fmt.Printf("Execution time: %s\n", elapsed)
 
 	})
 

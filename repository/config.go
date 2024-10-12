@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
-	"strconv"
 )
 
 var (
@@ -35,15 +34,7 @@ func Init() {
 	//	}
 	//}()
 
-	variable := os.Getenv("MIGRATIONS")
-	migrations, err := strconv.ParseBool(variable)
-	if err != nil {
-		log.Fatalf("Error converting environment variable to boolean: %v\n", err)
-	}
-
-	if migrations {
-		makeMigrations()
-	}
+	makeMigrations()
 
 	fmt.Println("Connected to MongoDB!")
 

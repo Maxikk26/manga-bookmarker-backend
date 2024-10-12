@@ -10,7 +10,6 @@ import (
 	"manga-bookmarker-backend/models"
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/utils"
-	"os"
 	"regexp"
 	"time"
 )
@@ -308,7 +307,7 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 	return updatedBookmark, nil
 }
 
-func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
+/*func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
 	//obtain bookmark
 
 	// Convert string to primitive.ObjectID
@@ -332,7 +331,7 @@ func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
 
 	//obtain manga
 
-	filter = bson.M{"_id": existingBookmark.MangaId}
+	filter = bson.M{"_id": existingBookmark.PathId}
 
 	existingManga, code, err := repository.FindManga(filter)
 	if err != nil {
@@ -404,7 +403,7 @@ func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
 	}
 
 	return bookmark, nil
-}
+}*/
 
 //Helpers
 
@@ -456,7 +455,9 @@ func createNewBookmark(data dtos.CreateBookmark, pathId, userId primitive.Object
 func validateKeepReading(bookmark *dtos.Bookmark) bool {
 	keepReading := false
 
-	mangaId, _ := primitive.ObjectIDFromHex(bookmark.MangaId)
+	//TODO refactor
+
+	/*mangaId, _ := primitive.ObjectIDFromHex(bookmark.MangaId)
 	filter := bson.M{"_id": mangaId}
 	//Retreive the manga to check if there are new chapters to read
 	mangaModel, code, err := repository.FindManga(filter)
@@ -470,7 +471,7 @@ func validateKeepReading(bookmark *dtos.Bookmark) bool {
 		return false
 	}
 
-	keepReading = bookmark.Chapter < mangaModel.TotalChapters
+	keepReading = bookmark.Chapter < mangaModel.TotalChapters*/
 
 	return keepReading
 }

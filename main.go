@@ -55,7 +55,7 @@ func main() {
 	repository.Init()
 
 	//Set up scrapper cron
-	loadScrapperCron()
+	//loadScrapperCron()
 
 	//Add convertion functions to mapper
 	utils.AddConvertionFunctions()
