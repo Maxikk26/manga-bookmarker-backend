@@ -125,11 +125,12 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 	userID, _ := primitive.ObjectIDFromHex(data.UserId)
 
 	// Check if bookmark already exists
-	existingBookmark, err := findExistingBookmark(pathModel.Id, userID)
+	existingBookmark, err := findExistingBookmarkV2(pathModel.Id, userID)
 	if err != nil {
 		fmt.Println("Error obtaining bookmark:", err.Error())
 		return "", err
 	}
+	fmt.Println("existingBookmark", existingBookmark)
 
 	if existingBookmark != nil {
 		return "", errors.New("El bookmark ya existe")
@@ -424,6 +425,25 @@ func findExistingBookmark(mangaID, userID primitive.ObjectID) (*models.Bookmark,
 	}
 
 	return &bookmark, nil
+}
+
+func findExistingBookmarkV2(pathID, userID primitive.ObjectID) (*models.Bookmark, error) {
+	filter := bson.M{
+		"pathId": pathID,
+		"userId": userID,
+	}
+
+	bookmark, code, err := repository.FindBookmark(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if code == constants.NoDocumentFound {
+		return nil, nil
+	}
+
+	return &bookmark, nil
+
 }
 
 // Helper function to create a new bookmark
