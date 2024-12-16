@@ -38,7 +38,8 @@ func CreateBookmarkHandler(ctx iris.Context) {
 
 	request.UserId = userId
 
-	id, err := services.CreateBookmark(request)
+	//id, err := services.CreateBookmark(request)
+	id, err := services.CreateBookmarkV2(request)
 	if err != nil {
 		fmt.Println("Error while creating bookmark: ", err)
 		response.Ok = false
@@ -131,17 +132,19 @@ func CheckUpdatesHandler(ctx iris.Context) {
 		return
 	}
 
-	result, err := services.CheckForMangaUpdates(bookmarkId)
+	//TODO refactor
+
+	/*result, err := services.CheckForMangaUpdates(bookmarkId)
 	if err != nil {
 		fmt.Println("Error while checking for manga updates: ", err)
 		response.Ok = false
 		response.Msg = err.Error()
 		ctx.JSON(response)
 		return
-	}
+	}*/
 
 	response.Ok = true
-	response.Result = result
+	//response.Result = result
 	ctx.JSON(response)
 
 }

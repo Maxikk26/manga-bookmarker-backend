@@ -55,7 +55,7 @@ func main() {
 	repository.Init()
 
 	//Set up scrapper cron
-	loadScrapperCron()
+	//loadScrapperCron()
 
 	//Add convertion functions to mapper
 	utils.AddConvertionFunctions()
@@ -84,6 +84,10 @@ func main() {
 			manga := v1.Party("/mangas")
 			{
 				manga.Get("", controllers.GetMangasHandler)
+			}
+			site := v1.Party("/sites")
+			{
+				site.Post("", controllers.CreateSiteConfigHandler)
 			}
 		}
 	}

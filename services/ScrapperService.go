@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"github.com/gocolly/colly/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
@@ -19,6 +18,75 @@ import (
 //TODO parametrizar los tags html
 //TODO parametrizar el codigo en funcion de la fuente
 
+func MangaScrappingV2(path string, siteConfig models.SiteConfig, ch chan<- dtos.MangaScrapperData) {
+	start := time.Now()
+
+	var data dtos.MangaScrapperData
+
+	mangaUrl := siteConfig.BaseUrl + path
+
+	domainGlob, err := obtainDomainGlob(mangaUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := NewCollector(domainGlob)
+	if err != nil {
+		log.Println("Error getting Colly collector:", err)
+		ch <- data
+		return
+	}
+
+	c.OnHTML("body", func(e *colly.HTMLElement) {
+		// Cache DOM selections
+		dom := e.DOM
+
+		// Title
+		data.Name = dom.Find(siteConfig.TitleSelector).Text()
+
+		// Cover
+		img := dom.Find(siteConfig.CoverSelector).First()
+		if img.Length() > 0 {
+			if src, exists := img.Attr("src"); exists {
+				data.Cover = src
+			} else {
+				fmt.Println("src attribute not found")
+			}
+		} else {
+			fmt.Println("No img elements found for the selector")
+		}
+
+		// Chapter
+		chapterName := strings.ToLower(dom.Find(siteConfig.ChapterSelector).Text())
+		re := regexp.MustCompile(`\d+(\.\d+)?`)
+		data.TotalChapters = re.FindString(chapterName)
+
+		// Upload time
+		chapterTime := strings.ToLower(dom.Find(siteConfig.UploadSelector).Text())
+		if date, err := ExtractAndParseDateOrTime(chapterTime); err != nil {
+			fmt.Println("Error parsing date or time:", err)
+		} else {
+			data.LastUpdate = date
+		}
+	})
+
+	// Before making a request print "Visiting ..."
+	c.OnRequest(func(r *colly.Request) {
+		fmt.Println("Visiting", r.URL.String())
+	})
+
+	// Start scraping on url provided
+	c.Visit(mangaUrl)
+
+	// Wait for all async tasks to complete
+	c.Wait()
+
+	ch <- data
+
+	elapsed := time.Since(start) // Calculate the elapsed time
+	fmt.Printf("Execution time: %s\n", elapsed)
+}
+
 func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 	start := time.Now()
 
@@ -28,6 +96,8 @@ func MangaScrapping(url string, ch chan<- dtos.MangaScrapperData) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("domain glob:", domainGlob)
 
 	c, err := NewCollector(domainGlob)
 	if err != nil {
@@ -185,16 +255,20 @@ func AsyncUpdatesScrapping(url string, manga models.Manga) {
 		}
 		data.LastUpdate = date
 
-		if data.TotalChapters != manga.TotalChapters {
+		//TODO refactor
+
+		/*if data.TotalChapters != manga.TotalChapters {
 			filter := bson.M{"_id": manga.Id}
 			err = UpdateManga(data, filter)
 			if err != nil {
 				fmt.Println("Error updating manga: ", err)
 			}
 			fmt.Println("Updated manga: ", manga.Name)
-			elapsed := time.Since(start) // Calculate the elapsed time
-			fmt.Printf("Execution time: %s\n", elapsed)
-		}
+
+		}*/
+
+		elapsed := time.Since(start) // Calculate the elapsed time
+		fmt.Printf("Execution time: %s\n", elapsed)
 
 	})
 
