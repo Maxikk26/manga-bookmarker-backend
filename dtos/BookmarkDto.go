@@ -29,11 +29,12 @@ type Bookmark struct {
 }
 
 type BookmarkDetail struct {
-	Id        string    `json:"id,omitempty"`
-	Chapter   string    `json:"chapter,omitempty"`
-	LastRead  time.Time `json:"lastRead,omitempty"`
-	Status    int       `json:"status,omitempty"`
-	MangaInfo MangaInfo `json:"mangaInfo,omitempty"`
+	Id          string    `json:"id,omitempty"`
+	Chapter     string    `json:"chapter,omitempty"`
+	LastRead    time.Time `json:"lastRead,omitempty"`
+	Status      int       `json:"status,omitempty"`
+	KeepReading bool      `json:"keepReading,omitempty"`
+	MangaInfo   MangaInfo `json:"mangaInfo,omitempty"`
 }
 
 type BookmarkUpdate struct {

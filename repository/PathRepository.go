@@ -28,3 +28,27 @@ func FindPath(filter bson.M) (path models.Path, errorType int, err error) {
 	}
 	return path, constants.NoError, nil
 }
+
+func FindPaths(filter bson.M) (paths []models.Path, err error) {
+	collection := DB.Collection("paths")
+	// Find paths based on the filter
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err // Return an error if the find operation fails
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var path models.Path
+		if err := cursor.Decode(&path); err != nil {
+			return nil, err // Return an error if decoding fails
+		}
+		paths = append(paths, path)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err // Return an error if there was an issue during the cursor iteration
+	}
+
+	// Return the paths and the total count (you can adjust this based on your needs)
+	return paths, nil
+}
