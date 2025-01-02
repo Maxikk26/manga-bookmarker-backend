@@ -104,7 +104,11 @@ func GetBookmarksHandler(ctx iris.Context) {
 		return
 	}
 
-	result, err := services.UserBookmarks(userId)
+	firstIdStr := ctx.URLParam("firstId")
+	lastIdStr := ctx.URLParam("lastId")
+	pageSize := ctx.URLParamIntDefault("pageSize", 5)
+
+	result, err := services.UserBookmarks(userId, firstIdStr, lastIdStr, pageSize)
 	if err != nil {
 		fmt.Println("Error while getting bookmark detail: ", err)
 		response.Ok = false

@@ -206,7 +206,13 @@ func BookmarkDetails(bookmarkId string) (dtos.BookmarkDetail, error) {
 	return bookmark, nil
 }
 
-func UserBookmarks(userId string) ([]dtos.BookmarkDetail, error) {
+type PaginationParams struct {
+	FirstId  primitive.ObjectID `json:"firstId,omitempty"`
+	LastId   primitive.ObjectID `json:"lastId,omitempty"`
+	PageSize int                `json:"pageSize"`
+}
+
+func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.BookmarkDetail, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
@@ -217,8 +223,29 @@ func UserBookmarks(userId string) ([]dtos.BookmarkDetail, error) {
 	// Define conditions for finding the user's bookmarks
 	filter := bson.M{"userId": objectID}
 
+	var firstId primitive.ObjectID
+	if firstIdStr != "" {
+		firstId, err = primitive.ObjectIDFromHex(firstIdStr)
+		if err != nil {
+			return nil, errors.New("El firstId enviado es invalido")
+		}
+	}
+
+	var lastId primitive.ObjectID
+	if lastIdStr != "" {
+		lastId, err = primitive.ObjectIDFromHex(lastIdStr)
+		if err != nil {
+			return nil, errors.New("El lastId enviado es invalido")
+		}
+	}
+
+	if !firstId.IsZero() && !lastId.IsZero() {
+		return nil, errors.New("No se pueden usar firstId y lastId para paginacion, solo enviar 1.")
+	}
+
 	// Retrieve the bookmarks from the repository
-	bookmarkModels, code, err := repository.FindBookmarks(filter)
+	//bookmarkModels, code, err := repository.FindBookmarks(filter)
+	bookmarkModels, code, err := repository.FindBookmarksV2(filter, pageSize, firstId, lastId)
 	if err != nil {
 		fmt.Println("Error obtaining bookmarks:", err)
 		return nil, errors.New("Ocurrió un error obteniendo los bookmarks")
@@ -284,6 +311,7 @@ func UserBookmarks(userId string) ([]dtos.BookmarkDetail, error) {
 
 		// Build the detail of the bookmark
 		bookmarkDetail := dtos.BookmarkDetail{
+			Id:          bookmark.Id.Hex(),
 			Chapter:     bookmark.Chapter,
 			LastRead:    bookmark.LastRead.Time(),
 			Status:      bookmark.Status,
