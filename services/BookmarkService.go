@@ -153,12 +153,12 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 	return bookmarkId, nil
 }
 
-func BookmarkDetails(bookmarkId string) (dtos.Bookmark, error) {
+func BookmarkDetails(bookmarkId string) (dtos.BookmarkDetail, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(bookmarkId)
 	if err != nil {
 		fmt.Println("Error converting string to ObjectID:", err)
-		return dtos.Bookmark{}, errors.New("Id del bookmark inválido")
+		return dtos.BookmarkDetail{}, errors.New("Id del bookmark inválido")
 	}
 
 	// Define conditions for finding the bookmark
@@ -168,27 +168,45 @@ func BookmarkDetails(bookmarkId string) (dtos.Bookmark, error) {
 	bookmarkModel, code, err := repository.FindBookmark(filter)
 	if err != nil {
 		fmt.Println("Error obtaining bookmark:", err)
-		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
+		return dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el bookmark")
 	}
 
 	// Handle case where the bookmark was not found
 	if code == constants.NoDocumentFound {
-		return dtos.Bookmark{}, errors.New("El bookmark no existe")
+		return dtos.BookmarkDetail{}, errors.New("El bookmark no existe")
 	}
 
 	// Map the data from the model to the DTO
-	var bookmark dtos.Bookmark
+	var bookmark dtos.BookmarkDetail
 	if err := utils.Mapper.Map(&bookmark, &bookmarkModel); err != nil {
 		fmt.Println("Error mapping data:", err)
-		return dtos.Bookmark{}, errors.New("Ocurrio un error obteniendo el bookmark")
+		return dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el bookmark")
 	}
 
-	bookmark.KeepReading = validateKeepReading(&bookmark)
+	filter = bson.M{"_id": bookmarkModel.PathId}
+	// Retrieve the path from the DB
+	pathModel, code, err := repository.FindPath(filter)
+	if err != nil {
+		fmt.Println("Error obtaining path:", err)
+		return dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el path del bookmark")
+	}
+
+	filter = bson.M{"_id": pathModel.MangaId}
+	// Retrieve the path from the DB
+	mangaModel, code, err := repository.FindManga(filter)
+	if err != nil {
+		fmt.Println("Error obtaining path:", err)
+		return dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el path del bookmark")
+	}
+
+	bookmark.MangaInfo.Name = mangaModel.Name
+	bookmark.MangaInfo.TotalChapters = pathModel.TotalChapters
+	bookmark.MangaInfo.LastUpdate = pathModel.LastUpdate.Time()
 
 	return bookmark, nil
 }
 
-func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
+func UserBookmarks(userId string) ([]dtos.BookmarkDetail, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
@@ -198,8 +216,6 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 
 	// Define conditions for finding the user's bookmarks
 	filter := bson.M{"userId": objectID}
-
-	//TODO paginated search
 
 	// Retrieve the bookmarks from the repository
 	bookmarkModels, code, err := repository.FindBookmarks(filter)
@@ -212,16 +228,38 @@ func UserBookmarks(userId string) ([]dtos.Bookmark, error) {
 	if code == constants.NoDocumentFound {
 		return nil, errors.New("El usuario no posee ningún bookmark")
 	}
+	var bookmarks []dtos.BookmarkDetail
 
-	// Map the data from the model to the DTOs
-	var bookmarks []dtos.Bookmark
-	if err := utils.Mapper.Map(&bookmarks, &bookmarkModels); err != nil {
-		fmt.Println("Error mapping data:", err)
-		return nil, errors.New("Error interno")
-	}
+	for i := range bookmarkModels {
+		filter = bson.M{"_id": bookmarkModels[i].PathId}
+		// Retrieve the path from the DB
+		pathModel, _, err := repository.FindPath(filter)
+		if err != nil {
+			fmt.Println("Error obtaining path:", err)
+			return []dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el path del bookmark")
+		}
 
-	for i := range bookmarks {
-		bookmarks[i].KeepReading = validateKeepReading(&bookmarks[i])
+		filter = bson.M{"_id": pathModel.MangaId}
+		// Retrieve the path from the DB
+		mangaModel, _, err := repository.FindManga(filter)
+		if err != nil {
+			fmt.Println("Error obtaining path:", err)
+			return []dtos.BookmarkDetail{}, errors.New("Ocurrio un error obteniendo el path del bookmark")
+		}
+
+		//Build the detail of the bookmark
+		bookmarkDetail := dtos.BookmarkDetail{
+			Chapter:  bookmarkModels[i].Chapter,
+			LastRead: bookmarkModels[i].LastRead.Time(),
+			Status:   bookmarkModels[i].Status,
+			MangaInfo: dtos.MangaInfo{
+				Name:          mangaModel.Name,
+				TotalChapters: pathModel.TotalChapters,
+				LastUpdate:    pathModel.LastUpdate.Time(),
+			},
+		}
+
+		bookmarks = append(bookmarks, bookmarkDetail)
 	}
 
 	return bookmarks, nil
@@ -303,7 +341,7 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 	}
 
 	//Set the flag for keepReading in case the user is behind in chapters
-	updatedBookmark.KeepReading = false
+	//updatedBookmark.KeepReading = false
 	/*mangaId, _ := primitive.ObjectIDFromHex(updatedBookmark.MangaId)
 
 	filter = bson.M{"_id": mangaId}

@@ -24,9 +24,16 @@ type Bookmark struct {
 	MangaId     string               `json:"mangaId,omitempty"`
 	Chapter     string               `json:"chapter,omitempty"`
 	LastRead    time.Time            `json:"lastRead,omitempty"`
-	KeepReading bool                 `json:"keepReading"`
 	Status      int                  `json:"status,omitempty"`
 	MangaUpdate *BookmarkMangaUpdate `json:"mangaUpdate,omitempty"`
+}
+
+type BookmarkDetail struct {
+	Id        string    `json:"id,omitempty"`
+	Chapter   string    `json:"chapter,omitempty"`
+	LastRead  time.Time `json:"lastRead,omitempty"`
+	Status    int       `json:"status,omitempty"`
+	MangaInfo MangaInfo `json:"mangaInfo,omitempty"`
 }
 
 type BookmarkUpdate struct {

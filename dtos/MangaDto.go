@@ -13,10 +13,10 @@ type MangaScrapperData struct {
 }
 
 type MangaInfo struct {
-	Id            string    `json:"id"`
+	Id            string    `json:"id,omitempty"`
 	Name          string    `json:"name"`
 	TotalChapters string    `json:"totalChapters"`
-	LastUpdate    time.Time `json:"lastUpdate"`
+	LastUpdate    time.Time `json:"lastUpdate,omitempty"`
 }
 
 type Manga struct {
