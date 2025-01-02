@@ -13,7 +13,7 @@ func ScrappingJob() {
 	}
 
 	for _, manga := range mangas {
-		url := os.Getenv("MANGANATO_URL") + manga.Identifier
+		url := os.Getenv("MANGANATO_URL")
 		go AsyncUpdatesScrapping(url, manga)
 	}
 

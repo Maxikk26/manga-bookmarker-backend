@@ -88,7 +88,6 @@ func FindOrScrapeManga(mangaIdentifier, url string) (models.Manga, error) {
 			return models.Manga{}, fmt.Errorf("Error mapping data: %v", err)
 		}
 
-		manga.Identifier = mangaIdentifier
 		manga.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
 		id, err := repository.CreateManga(manga)
 		if err != nil {

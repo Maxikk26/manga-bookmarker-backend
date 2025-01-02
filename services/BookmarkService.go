@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"manga-bookmarker-backend/constants"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
@@ -69,7 +70,9 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 		return "", errors.New("No se encontro la configuracion del sitio")
 	}
 
-	filter = bson.M{"path": data.Path}
+	path := utils.PathFromURL(data.Url)
+
+	filter = bson.M{"path": path}
 	pathModel, code, err := repository.FindPath(filter)
 	if err != nil {
 		return "", errors.New("No se encontro la path")
@@ -78,9 +81,10 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 	if code == constants.NoDocumentFound {
 		//Scrap manga from the site with its configurations
 		ch := make(chan dtos.MangaScrapperData)
-		go MangaScrappingV2(data.Path, siteModel, ch)
+		go MangaScrappingV2(path, siteModel, ch)
 
 		mangaData := <-ch
+		log.Print("mangaData", mangaData)
 
 		//Create Manga
 		var manga models.Manga
@@ -91,10 +95,13 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 		}
 
 		manga.UpdatedAt = primitive.NewDateTimeFromTime(time.Now())
+		log.Println("manga model", manga)
 		id, err := repository.CreateManga(manga)
 		if err != nil {
 			return "", errors.New("Error al crear el manga")
 		}
+
+		log.Println("manga id", id)
 
 		objectID, ok := id.(primitive.ObjectID)
 		if !ok {
@@ -105,7 +112,7 @@ func CreateBookmarkV2(data dtos.CreateBookmark) (string, error) {
 		newPath := models.Path{
 			MangaId:       objectID,
 			SiteId:        siteId,
-			Path:          data.Path,
+			Path:          path,
 			TotalChapters: mangaData.TotalChapters,
 			LastUpdate:    primitive.NewDateTimeFromTime(mangaData.LastUpdate),
 		}
