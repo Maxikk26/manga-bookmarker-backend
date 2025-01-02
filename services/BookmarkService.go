@@ -352,8 +352,16 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 	}
 
 	// Create the update document with $set
-	update := bson.D{{"$set", updateBson}}
-	update = append(update, bson.E{Key: "updatedAt", Value: primitive.NewDateTimeFromTime(time.Now())})
+	update := bson.D{
+		{"$set", bson.M{
+			"updatedAt": primitive.NewDateTimeFromTime(time.Now()),
+		}},
+	}
+
+	// Merge `updateBson` into the `$set` operator
+	update[0].Value = mergeMaps(update[0].Value.(bson.M), updateBson)
+
+	filter = bson.M{"_id": existingBookmark.Id}
 
 	// Update the bookmark in the repository
 	code, err = repository.UpdateBookmark(filter, update)
@@ -387,6 +395,13 @@ func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, e
 	}*/
 
 	return updatedBookmark, nil
+}
+
+func mergeMaps(m1, m2 bson.M) bson.M {
+	for key, value := range m2 {
+		m1[key] = value
+	}
+	return m1
 }
 
 /*func CheckForMangaUpdates(bookmarkId string) (dtos.Bookmark, error) {
