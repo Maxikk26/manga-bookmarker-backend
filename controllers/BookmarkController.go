@@ -86,6 +86,13 @@ func GetBookmarkHandler(ctx iris.Context) {
 	return
 }
 
+type BookmarkSearchParams struct {
+	FirstId  string
+	LastId   string
+	PageSize int
+	Status   int
+}
+
 func GetBookmarksHandler(ctx iris.Context) {
 	var response Response
 
