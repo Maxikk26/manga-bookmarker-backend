@@ -206,12 +206,6 @@ func BookmarkDetails(bookmarkId string) (dtos.BookmarkDetail, error) {
 	return bookmark, nil
 }
 
-type PaginationParams struct {
-	FirstId  primitive.ObjectID `json:"firstId,omitempty"`
-	LastId   primitive.ObjectID `json:"lastId,omitempty"`
-	PageSize int                `json:"pageSize"`
-}
-
 func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.BookmarkDetail, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userId)
