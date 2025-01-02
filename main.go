@@ -88,6 +88,7 @@ func main() {
 			site := v1.Party("/sites")
 			{
 				site.Post("", controllers.CreateSiteConfigHandler)
+				site.Get("/selector", controllers.ListSiteConfigHandler)
 			}
 		}
 	}

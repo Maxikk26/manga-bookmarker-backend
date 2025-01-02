@@ -14,3 +14,8 @@ type SiteConfig struct {
 	Id string `json:"id,omitempty"`
 	CreateSiteConfig
 }
+
+type SiteConfigSelector struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}

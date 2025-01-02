@@ -33,3 +33,21 @@ func CreateSiteConfigHandler(ctx iris.Context) {
 	ctx.JSON(response)
 	return
 }
+
+func ListSiteConfigHandler(ctx iris.Context) {
+	var response Response
+
+	siteConfigs, err := services.ListSites()
+	if err != nil {
+		fmt.Println("Error while creating site configuration: ", err)
+		response.Ok = false
+		response.Msg = err.Error()
+		ctx.JSON(response)
+		return
+	}
+
+	response.Ok = true
+	response.Result = siteConfigs
+	ctx.JSON(response)
+	return
+}
