@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/bson"
@@ -38,7 +39,7 @@ func Login(login dtos.Login) (tokenString string, err error) {
 	var jwtKey = []byte("my_secret_key")
 
 	// Set the JWT claims
-	expirationTime := time.Now().Add(15 * time.Hour)
+	expirationTime := time.Now().Add(2 * time.Hour)
 	claims := &Claims{
 		UserId: user.Id.Hex(),
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -97,7 +98,7 @@ func CreateUser(user dtos.UserCreate) (err error) {
 	return nil
 }
 
-func GetUserIdFromClaims(tokenString string) (userId string, err error) {
+func GetUserIdFromClaims(tokenString string) (userId string, err error, errorCode int) {
 	// Secret key used for signing the JWT (replace with your actual key)
 	secretKey := []byte("my_secret_key")
 
@@ -111,16 +112,50 @@ func GetUserIdFromClaims(tokenString string) (userId string, err error) {
 	})
 
 	if err != nil {
-		fmt.Println("Error parsing token: ", err)
-		return "", err
+		// Check if the error is due to the token being expired
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return "", fmt.Errorf("token is expired"), 1
+		}
+
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return "", fmt.Errorf("token is malformed"), 1
+		}
+
+		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
+			return "", fmt.Errorf("token is invalid"), 1
+		}
+		// Handle other errors
+		return "", err, 1
 	}
 
 	// Validate the token and extract claims
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims.UserId, nil
+		return claims.UserId, nil, 0
 	} else {
-		return "", err
+		return "", err, 2
 	}
+}
+
+func ValidUser(userId string) (valid bool, err error) {
+	if userId == "" {
+		return false, errors.New("invalid user")
+	}
+
+	// Convert string to primitive.ObjectID
+	objectID, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return false, errors.New("invalid user")
+	}
+
+	// Define conditions for finding the user's bookmarks
+	filter := bson.M{"_id": objectID}
+
+	_, _, err = repository.FindUser(filter)
+	if err != nil {
+		return false, errors.New("invalid user")
+	}
+
+	return true, nil
 }
 
 // Helpers

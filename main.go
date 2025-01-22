@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron"
 	"log"
 	"manga-bookmarker-backend/controllers"
+	"manga-bookmarker-backend/middleware"
 	"manga-bookmarker-backend/repository"
 	"manga-bookmarker-backend/services"
 	"manga-bookmarker-backend/utils"
@@ -68,12 +69,12 @@ func main() {
 		{
 			v1.Post("/login", controllers.LoginController)
 
-			user := v1.Party("/users")
+			user := v1.Party("/users", middleware.Auth)
 			{
 				user.Get("", controllers.GetUsersHandler)
 				user.Post("", controllers.CreateUserHandler)
 			}
-			bookmark := v1.Party("/bookmarks")
+			bookmark := v1.Party("/bookmarks", middleware.Auth)
 			{
 				bookmark.Post("", controllers.CreateBookmarkHandler)
 				bookmark.Get("/{id}", controllers.GetBookmarkHandler)
@@ -81,11 +82,11 @@ func main() {
 				bookmark.Get("/{id}/manga", controllers.CheckUpdatesHandler)
 				bookmark.Patch("/{id}", controllers.UpdateBookmarkHandler)
 			}
-			manga := v1.Party("/mangas")
+			manga := v1.Party("/mangas", middleware.Auth)
 			{
 				manga.Get("", controllers.GetMangasHandler)
 			}
-			site := v1.Party("/sites")
+			site := v1.Party("/sites", middleware.Auth)
 			{
 				site.Post("", controllers.CreateSiteConfigHandler)
 				site.Get("/selector", controllers.ListSiteConfigHandler)

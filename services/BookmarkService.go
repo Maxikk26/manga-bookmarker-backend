@@ -209,10 +209,6 @@ func BookmarkDetails(bookmarkId string) (dtos.BookmarkDetail, error) {
 func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.BookmarkDetail, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userId)
-	if err != nil {
-		fmt.Println("Error converting string to ObjectID:", err)
-		return nil, errors.New("Id del usuario inválido")
-	}
 
 	// Define conditions for finding the user's bookmarks
 	filter := bson.M{"userId": objectID}
