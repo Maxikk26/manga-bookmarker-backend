@@ -5,7 +5,6 @@ import (
 	"github.com/kataras/iris/v12"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/services"
-	"strings"
 )
 
 func CreateBookmarkHandler(ctx iris.Context) {
@@ -21,22 +20,7 @@ func CreateBookmarkHandler(ctx iris.Context) {
 		return
 	}
 
-	// Extract the Authorization header
-	authHeader := ctx.GetHeader("Authorization")
-	// Extract the token by trimming the "Bearer " prefix
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-
-	userId, err := services.GetUserIdFromClaims(token)
-	if err != nil {
-		fmt.Println("Error obtaining claims: ", err)
-		response.Ok = false
-		response.Msg = err.Error()
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(response)
-		return
-	}
-
-	request.UserId = userId
+	request.UserId = ctx.Values().Get("userId").(string)
 
 	//id, err := services.CreateBookmark(request)
 	id, err := services.CreateBookmarkV2(request)
@@ -86,25 +70,22 @@ func GetBookmarkHandler(ctx iris.Context) {
 	return
 }
 
+type BookmarkSearchParams struct {
+	FirstId  string
+	LastId   string
+	PageSize int
+	Status   int
+}
+
 func GetBookmarksHandler(ctx iris.Context) {
 	var response Response
 
-	// Extract the Authorization header
-	authHeader := ctx.GetHeader("Authorization")
-	// Extract the token by trimming the "Bearer " prefix
-	token := strings.TrimPrefix(authHeader, "Bearer ")
+	userId := ctx.Values().Get("userId").(string)
+	firstIdStr := ctx.URLParam("firstId")
+	lastIdStr := ctx.URLParam("lastId")
+	pageSize := ctx.URLParamIntDefault("pageSize", 5)
 
-	userId, err := services.GetUserIdFromClaims(token)
-	if err != nil {
-		fmt.Println("Error obtaining claims: ", err)
-		response.Ok = false
-		response.Msg = err.Error()
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.JSON(response)
-		return
-	}
-
-	result, err := services.UserBookmarks(userId)
+	result, err := services.UserBookmarks(userId, firstIdStr, lastIdStr, pageSize)
 	if err != nil {
 		fmt.Println("Error while getting bookmark detail: ", err)
 		response.Ok = false

@@ -51,5 +51,4 @@ func makeMigrations() {
 		}
 		fmt.Printf("Collection '%s' created successfully\n", collectionName)
 	}
-
 }

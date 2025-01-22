@@ -30,6 +30,30 @@ func FindManga(filter bson.M) (manga models.Manga, errorType int, err error) {
 	return manga, constants.NoError, nil
 }
 
+func FindMangas(filter bson.M) (mangas []models.Manga, err error) {
+	collection := DB.Collection("mangas")
+	// Find paths based on the filter
+	cursor, err := collection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err // Return an error if the find operation fails
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var manga models.Manga
+		if err := cursor.Decode(&manga); err != nil {
+			return nil, err // Return an error if decoding fails
+		}
+		mangas = append(mangas, manga)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err // Return an error if there was an issue during the cursor iteration
+	}
+
+	// Return the paths and the total count (you can adjust this based on your needs)
+	return mangas, nil
+}
+
 func AllMangas() (mangas []models.Manga, code int, err error) {
 	cursor, err := DB.Collection("mangas").Find(context.TODO(), bson.D{})
 	if err != nil {
