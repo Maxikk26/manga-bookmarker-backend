@@ -64,9 +64,9 @@ func main() {
 
 	//CORS Config
 	corsConfig := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},        // Allow requests only from localhost:3000
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"}, // Allowed HTTP methods
-		AllowCredentials: true,
+		AllowedOrigins: []string{"http://localhost:3000"},        // Allow requests only from localhost:3000
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"}, // Allowed HTTP methods
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	})
 
 	//Start iris server
