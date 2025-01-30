@@ -41,3 +41,16 @@ func FindUser(filter bson.M) (user models.User, errorType int, err error) {
 	}
 	return user, constants.NoError, nil
 }
+
+func UpdateUser(filter bson.M, updates bson.D) (int, error) {
+	result, err := DB.Collection("users").UpdateOne(context.TODO(), filter, updates)
+
+	if err != nil {
+		return constants.Other, err
+	}
+	if result.MatchedCount == 0 {
+		return constants.NoDocumentFound, nil
+	}
+
+	return constants.NoError, nil
+}

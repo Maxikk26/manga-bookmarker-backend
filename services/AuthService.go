@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"manga-bookmarker-backend/constants"
 	"manga-bookmarker-backend/dtos"
 	"manga-bookmarker-backend/models"
 	"manga-bookmarker-backend/repository"
@@ -24,17 +25,54 @@ type Claims struct {
 
 func Login(login dtos.Login) (tokenString string, err error) {
 	filter := bson.M{"username": login.Username}
-	user, _, err := repository.FindUser(filter)
+	user, code, err := repository.FindUser(filter)
 	if err != nil {
 		fmt.Println("Error obtaining user: ", err.Error())
-		return "", err
+		return "", errors.New("User or password invalid")
+	}
+
+	if code == constants.NoDocumentFound {
+		return "", errors.New("User or password invalid")
+	}
+
+	if user.Attempts == 3 {
+		return "", errors.New("User blocked")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
 	if err != nil {
-		fmt.Println("Error comparing password: ", err)
-		return "", err
+		log.Println("err", err)
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			filter = bson.M{"_id": user.Id}
+			update := bson.D{
+				{"$set", bson.M{
+					"attempts": user.Attempts + 1,
+				}},
+			}
+
+			_, err = repository.UpdateUser(filter, update)
+			if err != nil {
+				log.Println("err", err)
+			}
+
+			return "", errors.New("User or password invalid")
+		}
+		return "", errors.New("Error interno")
 	}
+
+	//Reset attempts
+	go func() {
+		if user.Attempts > 0 {
+			filter = bson.M{"_id": user.Id}
+			update := bson.D{
+				{"$set", bson.M{
+					"attempts": 0,
+				}},
+			}
+
+			_, _ = repository.UpdateUser(filter, update)
+		}
+	}()
 
 	var jwtKey = []byte("my_secret_key")
 

@@ -9,5 +9,6 @@ type User struct {
 	Email     string             `bson:"email"`
 	Rol       string             `bson:"role"`
 	Status    int                `bson:"status"`
+	Attempts  int                `bson:"attempts"`
 	UpdatedAt primitive.DateTime `bson:"updatedAt"`
 }
