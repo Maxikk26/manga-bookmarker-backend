@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/iris-contrib/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/kataras/iris/v12"
 	"github.com/robfig/cron"
@@ -61,10 +62,20 @@ func main() {
 	//Add convertion functions to mapper
 	utils.AddConvertionFunctions()
 
+	//CORS Config
+	corsConfig := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},        // Allow requests only from localhost:3000
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"}, // Allowed HTTP methods
+		AllowCredentials: true,
+	})
+
 	//Start iris server
 	app := iris.New()
+	app.Use(corsConfig)
+	app.AllowMethods(iris.MethodOptions)
 	api := app.Party("/api")
 	{
+
 		v1 := api.Party("/v1")
 		{
 			v1.Post("/login", controllers.LoginController)
