@@ -3,7 +3,6 @@ package middleware
 import (
 	"fmt"
 	"github.com/kataras/iris/v12"
-	"log"
 	"manga-bookmarker-backend/services"
 	"strings"
 )
@@ -16,7 +15,6 @@ func Auth(ctx iris.Context) {
 
 	//User ID
 	userId, err, code := services.GetUserIdFromClaims(token)
-	log.Println("err", err)
 	if err != nil {
 		fmt.Println("Error obtaining claims: ", err)
 		if code == 1 {

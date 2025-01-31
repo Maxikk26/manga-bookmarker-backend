@@ -89,7 +89,7 @@ func main() {
 			{
 				bookmark.Post("", controllers.CreateBookmarkHandler)
 				bookmark.Get("/{id}", controllers.GetBookmarkHandler)
-				bookmark.Get("", controllers.GetBookmarksHandler)
+				bookmark.Get("", controllers.GetUserBookmarksHandler)
 				bookmark.Get("/{id}/manga", controllers.CheckUpdatesHandler)
 				bookmark.Patch("/{id}", controllers.UpdateBookmarkHandler)
 			}

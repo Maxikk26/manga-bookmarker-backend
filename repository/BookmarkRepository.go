@@ -24,32 +24,7 @@ func FindBookmark(filter bson.M) (bookmark models.Bookmark, errorType int, err e
 	return bookmark, constants.NoError, nil
 }
 
-func FindBookmarks(filter bson.M) (bookmarks []models.Bookmark, code int, err error) {
-	cursor, err := DB.Collection("bookmarks").Find(context.TODO(), filter)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, constants.NoDocumentFound, nil
-		}
-		return nil, constants.Other, err
-	}
-	defer cursor.Close(context.TODO())
-
-	for cursor.Next(context.TODO()) {
-		var bookmark models.Bookmark
-		if err := cursor.Decode(&bookmark); err != nil {
-			return nil, constants.Other, err
-		}
-		bookmarks = append(bookmarks, bookmark)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, constants.Other, err
-	}
-
-	return bookmarks, constants.NoError, nil
-}
-
-func FindBookmarksV2(filter bson.M, pageSize int, firstId primitive.ObjectID, lastId primitive.ObjectID) ([]models.Bookmark, int, error) {
+func FindBookmarks(filter bson.M, pageSize int, firstId primitive.ObjectID, lastId primitive.ObjectID) ([]models.Bookmark, int, error) {
 	// Ensure that the pageSize is valid (greater than 0)
 	if pageSize <= 0 {
 		return nil, 0, errors.New("invalid page size")
@@ -130,4 +105,13 @@ func UpdateBookmark(filter bson.M, updates bson.D) (int, error) {
 
 	return constants.NoError, nil
 
+}
+
+func CountUserBookmarks(filter bson.M) (int64, error) {
+	// Count the bookmarks
+	count, err := DB.Collection("bookmarks").CountDocuments(context.TODO(), filter)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

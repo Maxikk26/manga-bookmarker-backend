@@ -37,6 +37,11 @@ type BookmarkDetail struct {
 	MangaInfo   MangaInfo `json:"mangaInfo,omitempty"`
 }
 
+type UserBookmars struct {
+	TotalBookmarks *int64           `json:"totalBookmarks,omitempty"`
+	Bookmarks      []BookmarkDetail `json:"bookmarks,omitempty"`
+}
+
 type BookmarkUpdate struct {
 	Chapter  string    `json:"chapter,omitempty" bson:"chapter,omitempty"`
 	LastRead time.Time `json:"lastRead,omitempty" bson:"lastRead,omitempty"`

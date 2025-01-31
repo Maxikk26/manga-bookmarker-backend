@@ -77,15 +77,20 @@ type BookmarkSearchParams struct {
 	Status   int
 }
 
-func GetBookmarksHandler(ctx iris.Context) {
+func GetUserBookmarksHandler(ctx iris.Context) {
 	var response Response
 
 	userId := ctx.Values().Get("userId").(string)
 	firstIdStr := ctx.URLParam("firstId")
 	lastIdStr := ctx.URLParam("lastId")
 	pageSize := ctx.URLParamIntDefault("pageSize", 5)
+	count, err := ctx.URLParamBool("count")
 
-	result, err := services.UserBookmarks(userId, firstIdStr, lastIdStr, pageSize)
+	if err != nil {
+		count = false
+	}
+
+	result, err := services.UserBookmarks(userId, firstIdStr, lastIdStr, pageSize, count)
 	if err != nil {
 		fmt.Println("Error while getting bookmark detail: ", err)
 		response.Ok = false

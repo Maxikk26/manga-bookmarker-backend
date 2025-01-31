@@ -206,7 +206,7 @@ func BookmarkDetails(bookmarkId string) (dtos.BookmarkDetail, error) {
 	return bookmark, nil
 }
 
-func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.BookmarkDetail, error) {
+func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int, count bool) (interface{}, error) {
 	// Convert string to primitive.ObjectID
 	objectID, err := primitive.ObjectIDFromHex(userId)
 
@@ -233,9 +233,15 @@ func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.B
 		return nil, errors.New("No se pueden usar firstId y lastId para paginacion, solo enviar 1.")
 	}
 
+	totalBookmarks := int64(0)
+
+	//Retrieve total count of user bookmarks (only retrieving when using a flag)
+	if count {
+		totalBookmarks, _ = repository.CountUserBookmarks(filter)
+	}
+
 	// Retrieve the bookmarks from the repository
-	//bookmarkModels, code, err := repository.FindBookmarks(filter)
-	bookmarkModels, code, err := repository.FindBookmarksV2(filter, pageSize, firstId, lastId)
+	bookmarkModels, code, err := repository.FindBookmarks(filter, pageSize, firstId, lastId)
 	if err != nil {
 		fmt.Println("Error obtaining bookmarks:", err)
 		return nil, errors.New("Ocurrió un error obteniendo los bookmarks")
@@ -255,7 +261,7 @@ func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.B
 	// Fetch all PathModels in a single query
 	paths, err := repository.FindPaths(bson.M{"_id": bson.M{"$in": pathIds}})
 	if err != nil {
-		return []dtos.BookmarkDetail{}, errors.New("Error obteniendo paths")
+		return []dtos.UserBookmars{}, errors.New("Error obteniendo paths")
 	}
 
 	// Map PathModels by PathId for easy lookup
@@ -273,7 +279,7 @@ func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.B
 	// Fetch all MangaModels in a single query
 	mangas, err := repository.FindMangas(bson.M{"_id": bson.M{"$in": mangaIds}})
 	if err != nil {
-		return []dtos.BookmarkDetail{}, errors.New("Error fetching mangas")
+		return []dtos.UserBookmars{}, errors.New("Error fetching mangas")
 	}
 
 	// Map MangaModels by MangaId for easy lookup
@@ -316,7 +322,15 @@ func UserBookmarks(userId, firstIdStr, lastIdStr string, pageSize int) ([]dtos.B
 		bookmarks = append(bookmarks, bookmarkDetail)
 	}
 
-	return bookmarks, nil
+	result := dtos.UserBookmars{
+		Bookmarks: bookmarks,
+	}
+
+	if totalBookmarks > 0 {
+		result.TotalBookmarks = &totalBookmarks
+	}
+
+	return result, nil
 }
 
 func UpdateBookmark(bookmarkId string, bookmark dtos.Bookmark) (dtos.Bookmark, error) {
